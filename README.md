@@ -201,5 +201,3 @@ muestra en la pantalla final. Migrar a una base es el próximo paso previsto.
   mínimo legible, marcado como provisorio.
 - **Faltan los textos de las nueve tomas de foto** (spec 7.5) y los catálogos
   definitivos de los selects (spec 7.4).
-- **El reCAPTCHA del motor está desactivado en producción**, sin relación con
-  este proyecto pero conviene mirarlo.

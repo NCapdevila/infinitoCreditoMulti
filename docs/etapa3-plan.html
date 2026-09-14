@@ -1,0 +1,427 @@
+<title>Etapa 3 Cotizador CE Brokers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ground:#F4F6FA; --surface:#FFFFFF; --surface-2:#EAEEF6;
+    --ink:#1B1D26; --muted:#5F6275; --faint:#8A8DA0;
+    --line:#DDE1EC; --line-soft:#E9ECF4;
+    --accent:#3379F6; --accent-2:#8B4FD6; --ok:#17864A; --warn:#B45309; --warn-bg:#FDF6EC;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0E1119; --surface:#161A24; --surface-2:#1D222E;
+      --ink:#E7E9F0; --muted:#A0A4B6; --faint:#777C90;
+      --line:#282E3C; --line-soft:#212734;
+      --accent:#6A9BFF; --accent-2:#B98CEE; --ok:#4ADE80; --warn:#E0A952; --warn-bg:#241D12;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0E1119; --surface:#161A24; --surface-2:#1D222E;
+    --ink:#E7E9F0; --muted:#A0A4B6; --faint:#777C90;
+    --line:#282E3C; --line-soft:#212734;
+    --accent:#6A9BFF; --accent-2:#B98CEE; --ok:#4ADE80; --warn:#E0A952; --warn-bg:#241D12;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:16px; line-height:1.62;
+    margin:0 auto; max-width:1060px;
+    padding-inline:24px; padding-block:0 96px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .prose{max-width:68ch}
+  p{margin:0 0 1em}
+  a{color:var(--accent)}
+  code{font-family:var(--mono); font-size:.86em}
+  b,strong{font-weight:600}
+
+  header.doc{padding-block:64px 40px; border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin:0 0 18px}
+  h1{font-size:clamp(2.1rem,5.4vw,3.05rem); font-weight:700; line-height:1.06; letter-spacing:-.025em; margin:0 0 18px; text-wrap:balance}
+  .lede{font-size:1.1rem; color:var(--muted); max-width:62ch; margin:0}
+  .source{display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:28px; font-family:var(--mono); font-size:.78rem; color:var(--faint)}
+
+  .figures{display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); border-bottom:1px solid var(--line)}
+  .fig-n{padding:26px 22px 26px 0}
+  .fig-n b{display:block; font-size:1.95rem; font-weight:700; letter-spacing:-.03em; line-height:1.1}
+  .fig-n span{font-size:.83rem; color:var(--muted)}
+
+  section{padding-block:52px; border-bottom:1px solid var(--line-soft)}
+  section:last-of-type{border-bottom:0}
+  h2{font-size:1.42rem; font-weight:700; letter-spacing:-.015em; margin:0 0 8px; display:flex; align-items:baseline; gap:14px; text-wrap:balance}
+  h2 .num{font-family:var(--mono); font-size:.78rem; font-weight:500; color:var(--accent); letter-spacing:.08em}
+  h3{font-size:1rem; font-weight:600; margin:36px 0 12px}
+  .sub{color:var(--muted); margin:0 0 28px; max-width:64ch}
+
+  figure{margin:0}
+  .diagram-wrap{overflow-x:auto; padding-bottom:6px}
+  .diagram-wrap svg{max-width:100%; height:auto; min-width:680px; display:block; margin-inline:auto; color:var(--ink)}
+  figcaption{font-size:.86rem; color:var(--muted); margin-top:18px; max-width:64ch}
+
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse; width:100%; font-size:.9rem}
+  th,td{text-align:left; padding:11px 16px 11px 0; border-bottom:1px solid var(--line-soft); vertical-align:top}
+  th{font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color:var(--faint); font-weight:600; border-bottom-color:var(--line)}
+  td.v{font-family:var(--mono); font-size:.83rem; white-space:nowrap; font-variant-numeric:tabular-nums}
+  td.was{font-family:var(--mono); font-size:.83rem; color:var(--faint); text-decoration:line-through; white-space:nowrap}
+
+  .swatches{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:18px; margin-top:8px}
+  .sw .chipcolor{height:48px; border-radius:5px; border:1px solid var(--line)}
+  .sw b{display:block; font-size:.85rem; margin-top:9px}
+  .sw code{display:block; color:var(--faint); font-size:.76rem}
+  .sw span{display:block; font-size:.77rem; color:var(--muted); line-height:1.45; margin-top:3px}
+
+  .chip{font-family:var(--mono); font-size:.68rem; letter-spacing:.05em; text-transform:uppercase; padding:3px 9px; border-radius:3px; white-space:nowrap; border:1px solid var(--line); color:var(--muted); background:var(--surface)}
+  .chip.new{color:var(--warn); border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+  .chip.ok{color:var(--ok); border-color:color-mix(in srgb,var(--ok) 40%,transparent)}
+
+  .row{display:grid; grid-template-columns:84px 1fr auto; gap:6px 20px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:baseline}
+  .row .id{font-family:var(--mono); font-size:.82rem; font-weight:500; color:var(--accent)}
+  .row .files{font-family:var(--mono); font-size:.74rem; color:var(--faint); display:block; margin-top:2px}
+  .row b{display:block}
+  @media (max-width:640px){.row{grid-template-columns:1fr} .row .chip{justify-self:start}}
+
+  .q{padding:17px 0; border-bottom:1px solid var(--line-soft); display:grid; grid-template-columns:auto 1fr; gap:4px 16px}
+  .q .chip{align-self:start}
+  .q p{margin:4px 0 0; color:var(--muted); font-size:.93rem; max-width:62ch}
+
+  .callout{border:1px solid color-mix(in srgb,var(--warn) 35%,transparent); background:var(--warn-bg); border-radius:8px; padding:20px 22px; margin:8px 0 28px}
+  .callout h3{margin:0 0 8px; font-size:.95rem; color:var(--warn)}
+  .callout p{margin:0 0 .7em; font-size:.93rem}
+  .callout p:last-child{margin-bottom:0}
+  .callout pre{margin:10px 0; padding:12px 14px; background:var(--surface); border:1px solid var(--line); border-radius:6px; overflow-x:auto; font-family:var(--mono); font-size:.78rem; line-height:1.5}
+
+  ol.steps{counter-reset:s; list-style:none; padding:0; margin:0}
+  ol.steps li{counter-increment:s; position:relative; padding:14px 0 14px 46px; border-bottom:1px solid var(--line-soft)}
+  ol.steps li::before{content:counter(s,decimal-leading-zero); position:absolute; left:0; top:15px; font-family:var(--mono); font-size:.78rem; color:var(--accent)}
+  ol.steps li p{margin:3px 0 0; color:var(--muted); font-size:.93rem; max-width:62ch}
+
+  footer{padding-top:44px; color:var(--faint); font-size:.85rem; max-width:70ch}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<header class="doc">
+  <p class="eyebrow">Plan de implementación</p>
+  <h1>Etapa 3 Cotizador CE Brokers</h1>
+  <p class="lede">La contratación online, montada sobre el multicotizador que ya corre en producción. Qué API hay realmente del otro lado, con qué tokens se construye y qué falta decidir antes de escribir código.</p>
+  <div class="source">
+    <span>spec funcional: CE-BROKERS-cotizador-etapa3-spec.md</span>
+    <span>export: CE BROKERS Agos.zip · 34 PNG</span>
+    <span>motor: infinito.foxia.ar</span>
+    <span>11 sep 2026</span>
+  </div>
+</header>
+
+<div class="figures">
+  <div class="fig-n"><b>15</b><span>pantallas S01–S13</span></div>
+  <div class="fig-n"><b>3</b><span>sin documentar en la spec</span></div>
+  <div class="fig-n"><b>9</b><span>tokens corregidos</span></div>
+  <div class="fig-n"><b>13</b><span>puntos a decidir</span></div>
+</div>
+
+<section>
+  <h2><span class="num">01</span> Qué se apoya en qué</h2>
+  <p class="sub">La spec funcional cubre la etapa 3 y da por resueltas las etapas 1 y 2. Esas etapas existen y son navegables hoy: son el multicotizador de <code>infinito.foxia.ar</code>. Recorrí sus endpoints para confirmar qué entrega exactamente en la frontera.</p>
+
+  <figure>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 780 880" role="img" aria-label="Mapa de la etapa 3: el motor htmx existente entrega la cotización a S01, y de ahí trece pantallas nuevas hasta la emisión, con la rama 0 KM salteando el módulo de fotos.">
+        <defs>
+          <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3379F6"/></marker>
+          <marker id="ad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" opacity=".55"/></marker>
+          <marker id="aw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#B45309"/></marker>
+        </defs>
+        <g font-family="Archivo, sans-serif">
+          <rect x="120" y="8" width="480" height="52" rx="6" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-dasharray="4 3"/>
+          <text x="360" y="30" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Etapas 1–2 · motor htmx en producción</text>
+          <text x="360" y="48" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".65">patente → marca · modelo · versión → provincia · localidad → resultados</text>
+          <line x1="360" y1="60" x2="360" y2="102" stroke="#3379F6" stroke-width="2" marker-end="url(#ab)"/>
+          <text x="372" y="84" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#3379F6">cotizacionId · CP · fecha nac.</text>
+
+          <g fill="none" stroke="currentColor" stroke-opacity=".3">
+            <rect x="200" y="108" width="320" height="38" rx="6"/>
+            <rect x="200" y="166" width="320" height="38" rx="6"/>
+            <rect x="200" y="224" width="320" height="38" rx="6"/>
+            <rect x="200" y="282" width="320" height="38" rx="6"/>
+            <rect x="200" y="340" width="320" height="38" rx="6"/>
+            <rect x="200" y="398" width="320" height="38" rx="6"/>
+            <rect x="200" y="456" width="320" height="38" rx="6"/>
+            <rect x="200" y="514" width="320" height="38" rx="6"/>
+            <rect x="200" y="572" width="320" height="38" rx="6"/>
+            <rect x="200" y="630" width="320" height="38" rx="6"/>
+            <rect x="200" y="688" width="320" height="38" rx="6"/>
+            <rect x="200" y="746" width="320" height="38" rx="6"/>
+          </g>
+          <rect x="200" y="804" width="320" height="38" rx="6" fill="none" stroke="#21A55C" stroke-width="1.6"/>
+
+          <g stroke="#3379F6" stroke-width="2" marker-end="url(#ab)" fill="none">
+            <line x1="360" y1="146" x2="360" y2="160"/><line x1="360" y1="204" x2="360" y2="218"/>
+            <line x1="360" y1="262" x2="360" y2="276"/><line x1="360" y1="320" x2="360" y2="334"/>
+            <line x1="360" y1="378" x2="360" y2="392"/><line x1="360" y1="436" x2="360" y2="450"/>
+            <line x1="360" y1="494" x2="360" y2="508"/><line x1="360" y1="552" x2="360" y2="566"/>
+            <line x1="360" y1="610" x2="360" y2="624"/><line x1="360" y1="668" x2="360" y2="682"/>
+            <line x1="360" y1="726" x2="360" y2="740"/><line x1="360" y1="784" x2="360" y2="798"/>
+          </g>
+
+          <g fill="currentColor" font-size="12" font-weight="600">
+            <text x="216" y="132">S01 · Cobertura elegida</text>
+            <text x="216" y="190">S02 · Datos de la agencia</text>
+            <text x="216" y="248">S03 · Modal requisitos</text>
+            <text x="216" y="306">S04 · Asegurado · física / jurídica</text>
+            <text x="216" y="364">S05 · Sexo y condición fiscal</text>
+            <text x="216" y="422">S06 · Domicilio del auto</text>
+            <text x="216" y="480">S07 · Datos del vehículo</text>
+            <text x="216" y="538">S08 · Intro de fotos</text>
+            <text x="216" y="596">S09 · Checklist 9 fotos</text>
+            <text x="216" y="654">S10 · Fotos cargadas</text>
+            <text x="216" y="712">S11 · Medio de pago</text>
+            <text x="216" y="770">S12 · Resumen final</text>
+            <text x="216" y="828">S13 · Póliza en emisión</text>
+          </g>
+
+          <!-- rama 0 KM -->
+          <g fill="none" stroke="#B45309" stroke-width="1.6">
+            <path d="M520 475 H556 V533 H586" marker-end="url(#aw)"/>
+            <path d="M676 552 V707 H526" marker-end="url(#aw)"/>
+          </g>
+          <rect x="586" y="514" width="180" height="38" rx="6" fill="none" stroke="#B45309" stroke-width="1.4"/>
+          <text x="598" y="538" font-size="11.5" font-weight="600" fill="#B45309">S07b · Auto 0 KM</text>
+          <text x="686" y="622" font-size="10.5" fill="#B45309" font-weight="600">saltea</text>
+          <text x="686" y="636" font-size="10.5" fill="#B45309" font-weight="600">las 9 fotos</text>
+
+          <!-- S09b -->
+          <g fill="none" stroke="currentColor" stroke-opacity=".5" stroke-width="1.4">
+            <path d="M520 585 H586" marker-end="url(#ad)"/>
+            <path d="M586 601 H520" marker-end="url(#ad)"/>
+          </g>
+          <rect x="586" y="572" width="180" height="38" rx="6" fill="none" stroke="currentColor" stroke-opacity=".25"/>
+          <text x="598" y="596" font-size="11.5" fill="currentColor" fill-opacity=".8">S09b · Modal por foto</text>
+
+          <!-- Cotizador 23 sin ubicar -->
+          <rect x="586" y="746" width="180" height="38" rx="6" fill="none" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3"/>
+          <text x="598" y="763" font-size="10.5" font-weight="600" fill="#B45309">Cotizador 23</text>
+          <text x="598" y="777" font-size="10" fill="#B45309" fill-opacity=".85">verificación · sin ubicar</text>
+          <path d="M520 765 H580" fill="none" stroke="#B45309" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#aw)"/>
+
+          <!-- reiniciar -->
+          <path d="M200 765 H150 V185 H194" fill="none" stroke="currentColor" stroke-opacity=".5" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ad)"/>
+          <text x="162" y="470" font-size="10.5" fill="currentColor" fill-opacity=".65" transform="rotate(-90 162 470)" text-anchor="middle">Reiniciar cotización → S02</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Trece pantallas en línea recta con una sola excepción que importa: <b>la rama 0 KM saltea el módulo de fotos entero</b> y cae directo en el medio de pago. La spec lo marca como la decisión de mayor impacto y tiene razón — cambia si un 0 KM se puede emitir sin inspección. En naranja, además, la pantalla del export que la spec no ubica en ningún lado.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2><span class="num">02</span> Qué hay del otro lado</h2>
+  <p class="sub">Recorrí el embed del multicotizador para ver qué expone. El resultado cambia la arquitectura del front nuevo.</p>
+
+  <p class="prose">Es <b>Django + htmx server-rendered</b>. No hay API JSON: <code>/api/</code>, <code>/api/schema/</code> y <code>/openapi.json</code> devuelven 404, y el endpoint de parciales responde <code>text/html</code> aunque se le pida JSON explícitamente. Toda la navegación es intercambio de fragmentos HTML.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Pieza</th><th>Forma</th></tr></thead>
+      <tbody>
+        <tr><td>Página</td><td class="v">/embed/infinitocredito/&lt;uuid&gt;?s=&lt;sesión&gt;&amp;step=&lt;id&gt;</td></tr>
+        <tr><td>Parciales</td><td class="v">/embed/partial/infinitocredito/&lt;uuid&gt;?s=…&amp;step=…</td></tr>
+        <tr><td>Swap</td><td>GET y POST devuelven el fragmento que reemplaza <code>#block-steps</code></td></tr>
+        <tr><td>Steps</td><td class="v">1 → 2cp | 2sp → 3sp → …</td></tr>
+        <tr><td>Sesión</td><td>Token <code>s=</code> en query string + CSRF de Django por request</td></tr>
+        <tr><td>Listas</td><td>marca, modelo, versión, provincia, localidad — filtrado por texto en cliente</td></tr>
+        <tr><td>Resultados</td><td>Acordeón por cobertura con scroll horizontal de compañías</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="prose" style="margin-top:28px">Eso resuelve de paso la ambigüedad 7.8 de la spec: <b>la fecha de nacimiento y el CP que aparecen en S12 sin haberse capturado vienen de acá.</b> El motor ya pide provincia y localidad, y el CP viaja con la cotización — es el mismo que S06 muestra como read-only.</p>
+
+  <div class="callout">
+    <h3>⚠ El reCAPTCHA está desactivado en producción</h3>
+    <p>En <code>/static/js/recaptcha.js</code>, la validación real está comentada y reemplazada por un bypass que siempre devuelve éxito:</p>
+    <pre>async validateRecaptcha(action, sessionKey) {
+    // BYPASS: Desactivar reCAPTCHA para desarrollo
+    sessionStorage.setItem(sessionKey, 'true');
+    return { success: true, cached: false };
+    // CÓDIGO ORIGINAL COMENTADO - Descomentar para producción</pre>
+    <p>El endpoint <code>/embed/validate-recaptcha/</code> existe y la site key se sirve en el HTML, pero el cliente nunca lo llama. El motor de cotización queda abierto a automatización. Tiene toda la pinta de un bypass de desarrollo que se fue a producción; conviene revisarlo con independencia de este proyecto.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">03</span> Arquitectura</h2>
+  <p class="sub">Decidido: un BFF propio envuelve el motor htmx y le sirve JSON al front. El front nuevo nunca habla htmx.</p>
+
+  <figure>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 760 300" role="img" aria-label="El front React habla JSON con un BFF propio; el BFF traduce a htmx contra el motor de Foxia para cotizar, y guarda fotos, pago y emisión en backend propio.">
+        <defs>
+          <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#3379F6"/></marker>
+          <marker id="b2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor" opacity=".55"/></marker>
+        </defs>
+        <g font-family="Archivo, sans-serif">
+          <rect x="16" y="108" width="172" height="84" rx="7" fill="none" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="102" y="140" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">React + Tailwind</text>
+          <text x="102" y="158" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".65">S01 – S13</text>
+          <text x="102" y="174" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".65">390 → 768 → 1024</text>
+
+          <rect x="288" y="108" width="172" height="84" rx="7" fill="none" stroke="#3379F6" stroke-width="1.8"/>
+          <text x="374" y="140" text-anchor="middle" font-size="12.5" font-weight="600" fill="#3379F6">BFF</text>
+          <text x="374" y="158" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".7">parsea HTML → JSON</text>
+          <text x="374" y="174" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".7">borrador del wizard</text>
+
+          <rect x="576" y="20" width="168" height="76" rx="7" fill="none" stroke="currentColor" stroke-opacity=".35"/>
+          <text x="660" y="48" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">Motor Foxia</text>
+          <text x="660" y="66" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".65">Django + htmx</text>
+          <text x="660" y="82" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".65">etapas 1–2</text>
+
+          <rect x="576" y="204" width="168" height="76" rx="7" fill="none" stroke="#21A55C" stroke-width="1.6"/>
+          <text x="660" y="232" text-anchor="middle" font-size="12" font-weight="600" fill="#21A55C">Backend propio</text>
+          <text x="660" y="250" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".65">fotos · pago · emisión</text>
+          <text x="660" y="266" text-anchor="middle" font-size="10.5" fill="currentColor" fill-opacity=".65">etapa 3</text>
+
+          <path d="M188 136 H282" fill="none" stroke="#3379F6" stroke-width="1.8" marker-end="url(#b1)"/>
+          <text x="235" y="128" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="#3379F6">paso N</text>
+          <path d="M282 168 H194" fill="none" stroke="#3379F6" stroke-width="1.8" marker-end="url(#b1)"/>
+          <text x="235" y="186" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="#3379F6">JSON</text>
+
+          <path d="M460 128 H520 V58 H570" fill="none" stroke="currentColor" stroke-opacity=".55" stroke-width="1.5" marker-end="url(#b2)" marker-start="url(#b2)"/>
+          <text x="520" y="100" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="currentColor" fill-opacity=".7">?s= &amp;step= ⇄ HTML</text>
+
+          <path d="M460 172 H520 V242 H570" fill="none" stroke="#21A55C" stroke-width="1.5" marker-end="url(#b2)" marker-start="url(#b2)"/>
+          <text x="520" y="205" text-anchor="middle" font-size="10" font-family="IBM Plex Mono, monospace" fill="#21A55C">multipart · emisión</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>El motor de Foxia nunca ve las fotos, el medio de pago ni la emisión: esos datos son de la etapa 3 y viven en backend propio. Lo único que cruza esa frontera es la cotización que el motor ya produce hoy. El BFF también es el lugar natural del borrador del wizard — con 13 pasos y 9 uploads, perder el progreso no es opción (ambigüedad 7.10 de la spec).</figcaption>
+  </figure>
+
+  <p class="prose"><b>El riesgo asumido</b> es que el BFF parsea HTML: si Foxia cambia el markup, se rompe. Conviene aislar el parseo en un solo módulo con tests contra fixtures del HTML real, para que un cambio de markup sea una corrección localizada y no una cacería. A mediano plazo, pedirle a Foxia una API JSON sigue siendo la salida correcta.</p>
+
+  <h3>Responsive</h3>
+  <p class="prose">El Figma es todo mobile y la spec lo confirma, pero el CSS de producción del multi ya es mobile-first con breakpoints en <b>768</b> y <b>1024</b> y un contenedor que arranca en 408 px. Las pantallas nuevas siguen esa misma escalera: misma columna centrada que se ensancha, sin layout de escritorio propio. Así el salto entre etapa 2 y etapa 3 no se nota.</p>
+</section>
+
+<section>
+  <h2><span class="num">04</span> Tokens reales</h2>
+  <p class="sub">La spec marca sus tokens como aproximados y pide extraerlos de Dev Mode antes de implementar. No hace falta: los saqué por muestreo directo de los PNG y resultaron coincidir con las variables CSS que el multicotizador ya usa en producción. Estos son los valores correctos, con el nombre que ya tienen.</p>
+
+  <div class="swatches">
+    <div class="sw"><div class="chipcolor" style="background:#3379F6"></div><b>Primario</b><code>#3379F6 · --celeste</code><span>CTA, títulos, links</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#99BCFA"></div><b>Primario disabled</b><code>#99BCFA</code><span>S07b y S09 hasta completar</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#AB76EB"></div><b>Violeta</b><code>#AB76EB · --seguros</code><span>Subtítulos y avisos</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#45E08B"></div><b>Check</b><code>#45E08B · --ce-travel</code><span>Adjunto cargado</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#21A55C"></div><b>WhatsApp</b><code>#21A55C</code><span>Botón verde de S13</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#6E6C83"></div><b>Texto</b><code>#6E6C83 · --textos</code><span>Filas y labels</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#494949"></div><b>Texto fuerte</b><code>#494949 · --gray-text</code><span>Opción de acordeón activa</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#A2A2A7"></div><b>Borde</b><code>#A2A2A7 · --gray-border</code><span>Contorno de input, 1 px</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#F4F4F4"></div><b>Superficie</b><code>#F4F4F4 · --gray-light</code><span>Acordeones y cards</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#33CCF6"></div><b>Cyan</b><code>#33CCF6 · --cian</code><span>«CE» del logo</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#00357D"></div><b>Navy</b><code>#00357D</code><span>«BROKERS» del logo</span></div>
+    <div class="sw"><div class="chipcolor" style="background:#DADADC"></div><b>Placeholder</b><code>#DADADC</code><span>Texto de ejemplo en input</span></div>
+  </div>
+
+  <h3>Correcciones sobre la spec</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Token</th><th>Spec</th><th>Real</th><th>Por qué</th></tr></thead>
+      <tbody>
+        <tr><td>Primario</td><td class="was">#3D7BFB</td><td class="v">#3379F6</td><td>Es <code>--celeste</code> en el CSS de producción</td></tr>
+        <tr><td>Primario disabled</td><td class="was">#A8C4FB</td><td class="v">#99BCFA</td><td>Muestreo del botón de S07b</td></tr>
+        <tr><td>Violeta</td><td class="was">#8B5CF6</td><td class="v">#AB76EB</td><td>Es <code>--seguros</code></td></tr>
+        <tr><td>Check</td><td class="was">#22C55E</td><td class="v">#45E08B</td><td>Es <code>--ce-travel</code></td></tr>
+        <tr><td>WhatsApp</td><td class="was">#1FA855</td><td class="v">#21A55C</td><td>Muestreo del botón de S13</td></tr>
+        <tr><td>Texto</td><td class="was">#6B7280</td><td class="v">#6E6C83</td><td>Es <code>--textos</code></td></tr>
+        <tr><td>Texto fuerte</td><td class="was">#374151</td><td class="v">#494949</td><td>Es <code>--gray-text</code></td></tr>
+        <tr><td>Borde</td><td class="was">#E5E7EB</td><td class="v">#A2A2A7</td><td>Es <code>--gray-border</code>: bastante más oscuro</td></tr>
+        <tr><td>Superficie</td><td class="was">#F3F4F6</td><td class="v">#F4F4F4</td><td>Es <code>--gray-light</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose" style="margin-top:20px">Los valores de la spec son defaults de Tailwind estimados a ojo sobre capturas. Los reales no son de la paleta de Tailwind, así que no alcanza con usar las clases por defecto: hay que declararlos en el <code>theme.extend</code>.</p>
+
+  <h3>Medidas</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Elemento</th><th>Spec</th><th>Medido</th><th>Nota</th></tr></thead>
+      <tbody>
+        <tr><td>Artboard</td><td class="was">375 px</td><td class="v">390 px</td><td>Los PNG exportan a 390–392</td></tr>
+        <tr><td>Radio de botón</td><td class="was">pill ~28 px</td><td class="v">~12 px</td><td>Un pill de 28 daría 21 px de inset en la primera fila; medí 7</td></tr>
+        <tr><td>Alto de botón</td><td class="v">~56 px</td><td class="v">58 px</td><td>Coincide</td></tr>
+        <tr><td>Alto de input</td><td class="v">~56 px</td><td class="v">48 px</td><td>El input es más bajo que el botón</td></tr>
+        <tr><td>Header</td><td class="v">~74 px</td><td class="v">112 px</td><td>Incluye el aire hasta el separador</td></tr>
+        <tr><td>Gutter</td><td class="v">24 px</td><td class="v">24 px</td><td>Contenido de 342 px</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="num">05</span> Pantallas del export sin ID</h2>
+  <p class="sub">El export tiene 34 archivos: 25 pantallas, 6 rótulos del board, 1 componente suelto y 2 referencias de UI kit. Casi todas mapean limpio contra los IDs de la spec. Tres no.</p>
+
+  <div class="row"><span class="id">—</span><div><b>Modal «Esta póliza requiere una verificación»</b><span class="files">Cotizador 23</span><p style="margin:4px 0 0;color:var(--muted);font-size:.93rem">Verificación requerida antes de emitir, con un único botón: «Continuar con la emisión asistida». No aparece en el mapa de navegación de la spec. Es una bifurcación real de S12: no toda póliza se emite sola.</p></div><span class="chip new">sin ubicar</span></div>
+
+  <div class="row"><span class="id">S01?</span><div><b>Cobertura elegida con DNI y Recotizar</b><span class="files">Caso de uso ALLIANZ</span><p style="margin:4px 0 0;color:var(--muted);font-size:.93rem">Variante de S01 que suma un campo DNI y un botón «Recotizar», con la nota «para obtener la cotización precisa de ésta compañía es necesario ingresar datos adicionales». La spec documenta sólo la variante simple. Falta la regla que decide cuál se muestra.</p></div><span class="chip new">sin ubicar</span></div>
+
+  <div class="row"><span class="id">—</span><div><b>Nota del diseñador</b><span class="files">BOTON “CONTRATAR ONLINE en pantalla anterior”…</span><p style="margin:4px 0 0;color:var(--muted);font-size:.93rem">«Corroborar con el original porque falta la cobertura». Quedó sin resolver en el board y no se menciona en la spec.</p></div><span class="chip new">abierto</span></div>
+
+  <div class="row"><span class="id">etapa 2</span><div><b>Loading y oferta de cobertura</b><span class="files">Caso de uso ALLIANZ-1 · Caso de uso ALLIANZ-2</span><p style="margin:4px 0 0;color:var(--muted);font-size:.93rem">Son etapa 2, no 3: el «¡Gracias por esperar!» y el acordeón de coberturas con la card de Allianz. Coinciden con lo que el motor ya renderiza hoy.</p></div><span class="chip ok">ya existe</span></div>
+
+  <div class="row"><span class="id">—</span><div><b>Referencias de UI kit</b><span class="files">image 12 · image 13</span><p style="margin:4px 0 0;color:var(--muted);font-size:.93rem">Patrón de tooltip «?» y un do/don't de estilo de inputs, ambos en inglés y ajenos a la marca. Son guía de construcción, no contenido. El do/don't sugiere que se quería un patrón de validación que nunca se especificó.</p></div><span class="chip">descartar</span></div>
+</section>
+
+<section>
+  <h2><span class="num">06</span> Qué falta decidir</h2>
+  <p class="sub">La spec lista once ambigüedades. Estas son las que bloquean el arranque, más dos que el relevamiento del export y del motor agregan.</p>
+
+  <div class="q"><span class="chip new">bloqueante</span><div><b>La rama 0 KM saltea las 9 fotos</b><p>Spec 7.3. Es la decisión de mayor impacto: si un 0 KM se emite sin inspección, cambia el modelo de datos, la validación de emisión y probablemente el acuerdo con la compañía. Hay que resolverlo antes de tocar el wizard.</p></div></div>
+
+  <div class="q"><span class="chip new">bloqueante</span><div><b>¿Quién completa los datos de la agencia?</b><p>S02 pide agencia, vendedor, teléfono y mail, y es la primera pantalla del formulario. Si lo carga el vendedor, la app necesita sesión y la etapa 3 es B2B; si lo carga el cliente, hay que explicarle por qué se lo preguntan. Define el esqueleto de la app y no está en la lista de la spec.</p></div></div>
+
+  <div class="q"><span class="chip new">bloqueante</span><div><b>Dónde entra la verificación manual</b><p><code>Cotizador 23</code> existe pero no está en el mapa. Si S12 puede derivar a emisión asistida en vez de emitir, el front necesita ese estado y el backend necesita decidirlo. Hoy no está especificado en ningún lado.</p></div></div>
+
+  <div class="q"><span class="chip">a definir</span><div><b>Estados de error: ninguno está maquetado</b><p>Spec 5.3. Ni campo inválido, ni archivo &gt; 4 MB, ni extensión rechazada, ni fallo de emisión, ni loading del «Confirmar datos». Son del orden de 20 estados y hoy no hay diseño para ninguno.</p></div></div>
+
+  <div class="q"><span class="chip">a definir</span><div><b>Textos de los 9 ítems de foto</b><p>Spec 7.5. El prototipo sólo maquetó «Lateral conductor». Faltan título, tip e imagen de ejemplo de los otros 8, y decidir si el chip «?» va en los 9 o sólo en 5.</p></div></div>
+
+  <div class="q"><span class="chip">a definir</span><div><b>Catálogos de los selects</b><p>Spec 7.4. Sexo, condición fiscal, marca de tarjeta y tipo de cuenta. Ninguno está desplegado. Además condición fiscal se dibuja como input pero se comporta como select.</p></div></div>
+
+  <div class="q"><span class="chip">a definir</span><div><b>Destino de los dos botones de WhatsApp</b><p>Spec 7.1. ¿Número fijo de CE Brokers o el del vendedor de la agencia? ¿El mensaje prearmado lleva el ID de cotización? Con S02 capturando el teléfono del vendedor, la segunda opción es viable.</p></div></div>
+
+  <div class="q"><span class="chip">a definir</span><div><b>Nombres inconsistentes de los ítems de foto</b><p>Spec 7.6. «Tablero de contacto» vs «Tablero en contacto», «Cédula verde/ título» vs «Cédula verde título». Un enum único y las etiquetas derivadas de él.</p></div></div>
+
+  <div class="q"><span class="chip">menor</span><div><b>PDF como foto del vehículo</b><p>El modal acepta <code>.pdf</code> para las 9 tomas. Tiene sentido para la cédula verde, no para el lateral del auto. Conviene restringir formatos por ítem.</p></div></div>
+
+  <div class="q"><span class="chip ok">resuelto</span><div><b>De dónde salen la fecha de nacimiento y el CP</b><p>Spec 7.8. Del motor: las etapas 1–2 ya capturan provincia, localidad y CP, y viajan con la cotización. La inconsistencia CP 1234 vs 3000 es del mockup, no del flujo.</p></div></div>
+</section>
+
+<section>
+  <h2><span class="num">07</span> Por dónde empezar</h2>
+  <p class="sub">La spec propone un orden razonable. Este lo ajusta a lo que sabemos del motor: lo primero no es maquetar, es probar que el BFF puede sostener la traducción.</p>
+
+  <ol class="steps">
+    <li><b>Prototipo de parseo del BFF</b><p>Un solo step del motor traducido a JSON, con fixtures del HTML real y tests. Si esto es frágil, conviene saberlo antes de construir trece pantallas encima.</p></li>
+    <li><b>Design system con los tokens de §04</b><p><code>theme.extend</code> de Tailwind con los hex reales, más C1–C10 de la spec y sus estados. Los valores ya están confirmados: no hay que volver a Figma.</p></li>
+    <li><b>Máquina de estado del wizard</b><p>El modelo de datos de la sección 6 de la spec, con borrador persistido en cada paso. Trece pasos y nueve uploads no toleran perder progreso.</p></li>
+    <li><b>S02 → S07</b><p>Las seis pantallas de formulario: mismo patrón, ninguna sorpresa.</p></li>
+    <li><b>Módulo de fotos S08 → S10</b><p>Lo más complejo: uploads, validación de tipo y tamaño, progreso, reintentos. Se implementa una vez y se reusa.</p></li>
+    <li><b>S11 con máscaras y validaciones</b><p>Luhn para la tarjeta, 22 dígitos para el CBU. Ojo con el placeholder de la spec, que trae 16.</p></li>
+    <li><b>S12, S13 y la rama de verificación</b><p>Resumen con edición inline, emisión y —si se confirma— la derivación a emisión asistida de <code>Cotizador 23</code>.</p></li>
+    <li><b>Estados de error</b><p>Recién cuando diseño los defina. Hasta entonces, placeholders explícitos y no comportamiento inventado.</p></li>
+  </ol>
+
+  <p class="prose" style="margin-top:32px">Los pasos 1 y 2 pueden arrancar hoy: no dependen de ninguna de las decisiones abiertas. El paso 3 necesita resuelto el 0 KM, porque cambia el modelo de datos.</p>
+</section>
+
+<footer>
+  Plan de implementación sobre la spec funcional de la etapa 3, el export <span style="font-family:var(--mono)">CE BROKERS Agos.zip</span> y el recorrido del motor en <span style="font-family:var(--mono)">infinito.foxia.ar</span>.
+  Los tokens y medidas salen de muestreo directo de los PNG, confirmados contra el CSS de producción.
+  11 de septiembre de 2026.
+</footer>

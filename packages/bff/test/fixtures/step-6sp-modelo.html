@@ -1,0 +1,46 @@
+
+<section class="intro-section-steps">
+    <h1 class="title">¿Qué modelo es?</h1>
+    <form method="post"
+          id="form_model"
+          class="search-section"
+          onsubmit="return false;"
+          action="/embed/partial/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000&step=6sp"
+          hx-post="/embed/partial/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000&step=6sp"
+          hx-trigger="change from:#model-list input[name='model']"
+          hx-target="#block-steps"
+          hx-swap="innerHTML">
+        <input type="hidden" name="csrfmiddlewaretoken" value="cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc">
+        <input type="hidden" name="next" id="id_next">
+    
+
+    
+        <div class="search-container">
+            <input type="text" name="search" class="search-input" placeholder="Buscar por modelo" aria-label="Buscador" autofocus="autofocus" hx-post="/embed/models?s=sesiondeprueba000000000000000000" hx-target="#model-list" hx-trigger="load[document.getElementById(&#x27;model-list&#x27;).children.length === 0]" oninput="filterModels(this.value)" hx-include="[name=csrfmiddlewaretoken]" hx-indicator="#loading" maxlength="100" id="id_search">
+            <img
+                    class="search-icon"
+                    src="https://c.animaapp.com/mctapq6g0WFK9S/img/vector-1.svg"
+                    alt="Buscar"
+            />
+        </div>
+    
+
+    
+        <div id="model-list" class="locations-section"></div>
+        <div id="loading" class="htmx-indicator">
+            <div class="loader"></div>
+        </div>
+        <div class="actions-section">
+            <a href="#" onclick="history.back(); return false;" class="secondary-button">Volver</a>
+        </div>
+    </form>
+</section>
+
+
+<div id="back-button-container" hx-swap-oob="true">
+	
+	<a href="#" onclick="history.back(); return false;" class="back-button">
+		<img src="/static/assets/Path.svg" alt="Volver" />
+	</a>
+	
+</div>

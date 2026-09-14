@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/**
+ * Design system del cotizador.
+ *
+ * Los colores no son estimaciones: salen de muestrear los PNG del Figma y
+ * coinciden uno a uno con las variables CSS que el multicotizador ya usa en
+ * producción. El nombre de producción va anotado para poder rastrearlos.
+ *
+ * Ojo: ninguno pertenece a la paleta de Tailwind. Usar `blue-500` o `gray-100`
+ * en vez de estos tokens desalinea el front nuevo del multi.
+ */
+@theme {
+  /* Marca */
+  --color-primary: #3379f6;          /* --celeste  · CTA, títulos, links */
+  --color-primary-disabled: #99bcfa; /*            · botón bloqueado */
+  --color-accent: #ab76eb;           /* --seguros  · subtítulos y avisos */
+  --color-cyan: #33ccf6;             /* --cian     · «CE» del logo */
+  --color-navy: #00357d;             /*            · «BROKERS» del logo */
+
+  /* Estado */
+  --color-success: #45e08b;          /* --ce-travel · check de adjunto */
+  --color-whatsapp: #21a55c;         /*             · botón de WhatsApp */
+
+  /* Texto y superficies */
+  --color-ink: #494949;              /* --gray-text   · texto fuerte */
+  --color-muted: #6e6c83;            /* --textos      · labels y valores */
+  --color-placeholder: #dadadc;      /*               · texto de ejemplo */
+  --color-line: #a2a2a7;             /* --gray-border · borde de input */
+  --color-surface: #f4f4f4;          /* --gray-light  · cards y acordeones */
+
+  /* Tipografía de producción */
+  --font-sans: "Poppins", "Helvetica Neue", Helvetica, sans-serif;
+  --font-alt: "Plus Jakarta Sans", "Helvetica Neue", Helvetica, sans-serif;
+
+  /* Medidas tomadas de los artboards (390 px) */
+  --radius-field: 8px;
+  --radius-button: 12px;
+  --radius-modal: 16px;
+  --spacing-gutter: 24px;
+
+  /*
+   * Anchos, tomados del CSS de producción del motor.
+   *
+   * En escritorio el multi deja de ser una columna mobile centrada: el
+   * contenedor se ensancha, el título crece a 40px y los controles dejan de
+   * ocupar todo el ancho. Estos son los valores con los que ya opera.
+   */
+  --container-app: 408px;      /* mobile */
+  --container-app-md: 768px;   /* ≥768  · .app-container */
+  --container-app-lg: 1024px;  /* ≥1024 · .app-container */
+
+  /* Bloques de contenido dentro del contenedor */
+  --w-campo: 500px;            /* ≥768  · inputs, cards, resúmenes */
+  --w-campo-lg: 600px;         /* ≥1024 */
+  --w-formulario: 556px;       /* ≥768  · formularios y acordeones */
+  --w-angosto: 390px;          /* ≥768  · un campo suelto, adjuntos */
+  --w-boton: 270px;            /* ≥768  · ancho máximo de botón */
+  --w-fotos: 816px;            /* ≥768  · grilla de fotos cargadas */
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    background: #fff;
+    color: var(--color-muted);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * Cursor de mano en lo que se puede accionar.
+   *
+   * Tailwind v4 quitó `cursor: pointer` de los botones en su reset, así que en
+   * escritorio nada indicaba qué era clickeable. Se repone acá —una sola vez—
+   * en vez de recordarlo en cada componente.
+   */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  label[for],
+  summary,
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* El foco del teclado tiene que verse: el flujo son 13 pasos de formulario. */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

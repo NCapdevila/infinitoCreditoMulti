@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+
+# Capturas de tráfico del motor: traen cookies de sesión y datos de la
+# cotización. Los fixtures anonimizados viven en packages/bff/test/fixtures.
+*.har
+infinito.foxia.ar.json
+
+# capturas de revisión visual
+shots/
+
+# variables locales

@@ -1,0 +1,64 @@
+
+<!DOCTYPE html><html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1" /><meta charset="utf-8" /><meta name="title" content="Infinito Créditos"><meta name="description" content="Infinito Créditos"><title>Infinito Créditos</title><link rel="icon" type="image/x-icon" href="https://cebroker-assets.nyc3.digitaloceanspaces.com/cebroker-assets/favicons/infinit-ico-negro.ico"><link rel="stylesheet" href="/static/css/main.css"><link rel="stylesheet" href="/static/css/styles.css"><script src="/static/js/search-filter.js"></script><script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js" integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm" crossorigin="anonymous"></script><script src="https://www.google.com/recaptcha/enterprise.js?render=6Lch8uQrAAAAAFN_Vhw16xWHnXjRb9KWQnPPLlJM"></script><script>
+    window.RECAPTCHA_PUBLIC_KEY = "6Lch8uQrAAAAAFN_Vhw16xWHnXjRb9KWQnPPLlJM";
+</script><script src="/static/js/recaptcha.js"></script><script src="/static/js/quotations-polling.js"></script></head><body><header class="header"><a href="/embed/infinitocredito/994b4085-999d-4301-9531-607ff61fca42" target="_self"><img
+					class="logo"
+					src="https://cebroker-assets.nyc3.digitaloceanspaces.com/cebroker-assets/logos/logo-black_1_1.png"
+					alt="Logo"
+				/></a><div id="back-button-container"><a href="#" onclick="history.back(); return false;" class="back-button hidden"><img src="/static/assets/Path.svg" alt="Volver" /></a></div><script>
+			function updateBackButton() {
+				const urlParams = new URLSearchParams(window.location.search);
+				const step = urlParams.get('step');
+				const backButton = document.querySelector('.back-button');
+
+				if (step && step !== '1') {
+					backButton.classList.remove('hidden');
+				} else {
+					backButton.classList.add('hidden');
+				}
+			}
+
+			document.addEventListener('DOMContentLoaded', updateBackButton);
+			window.addEventListener('popstate', updateBackButton);
+			document.body.addEventListener('htmx:pushedIntoHistory', updateBackButton);
+			</script></header><style>
+			/* CSS Variables */
+			:root {
+				--white: #ffffff;
+				--cian: #33ccf6;
+				--celeste: #3379F6;
+				--azul-2: #3379F6;
+				--azul-5: #3379F6;
+				--textos: #6e6c83;
+				--texto-button: #FFFFFF;
+				--seguros: #ab76eb;
+				--ce-travel: #45e08b;
+				--gray-light: #f4f4f4;
+				--gray-border: #a2a2a7;
+				--gray-text: #494949;
+				--black: #000000;
+			}
+		</style><main class="main-content"><div id="block-steps"><section class="intro-section"><div class="tag">COMENCEMOS</div><h1 class="title">¿Cuál es la patente de tu auto?</h1><p class="description">
+		Con la patente podremos encontrar rápidamente los datos que necesitamos para cotizar.
+	</p><form class="form-step1"
+          hx-post="/embed/partial/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=bwgx523oj0ynyqx61qivi3k8pzr5piw4&step=1"
+          hx-target="#block-steps" hx-swap="innerHTML"><input type="hidden" name="csrfmiddlewaretoken" value="ad51a51d5215ef33074b4c16ed51a23c7ee96861c3f3ede435320adb9589452c"><input type="hidden" name="next" value="2cp" id="id_next"><div class="input-section"><div class="input-container"><input type="text" 
+			name="plate"
+			class="license-plate-input" 
+			placeholder="Ej.: AZ456CD" 
+			aria-label="Patente"
+			maxlength="7" /></div></div><div class="actions-section"><button type="submit" class="primary-button">Cotizar con patente</button><button type="button"
+				class="secondary-button-step1"
+				hx-push-url="/embed/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=bwgx523oj0ynyqx61qivi3k8pzr5piw4&step=2sp"
+				hx-get="/embed/partial/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=bwgx523oj0ynyqx61qivi3k8pzr5piw4&step=2sp"
+				hx-target="#block-steps"
+				hx-swap="innerHTML"
+				hx-trigger="recaptchaValidated"
+			>
+				Cotizar sin patente →
+			</button></div></form><div id="recaptcha-loading" class="loading-section" style="display: none; text-align: center;"><div class="loader"></div></div><div id="recaptcha-error" style="display: none; text-align: center; padding: 10px;"><p class="description3-1" style="font-size: 12px; color: #e74c3c;">Ha ocurrido un error, intente de nuevo.</p></div></section><script defer="true" src="/static/js/recaptcha-plate.js"></script><!-- <div class="navigation-dots"> --><!-- 	<div class="dot active"></div> --><!-- 	<div class="dot"></div> --><!-- 	<div class="dot"></div> --><!-- 	<div class="dot"></div> --><!-- </div> --></div><footer class="recaptcha-footer"><p>Este sitio está protegido por reCAPTCHA y se aplican la
+		<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de Privacidad</a>
+		y los
+		<a href="https://policies.google.com/terms" target="_blank" rel="noopener">Términos de Servicio</a>
+		de Google.
+	</p></footer></main></body></html>

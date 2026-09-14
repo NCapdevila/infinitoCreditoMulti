@@ -42,6 +42,56 @@ npm run dev -w @infinito/web
 Variables del BFF: ver [.env.example](.env.example). El servidor las lee de un
 `.env` en la raíz.
 
+### Quién puede embeber la app, y quién llamar a la API
+
+Son **dos listas distintas** y es fácil confundirlas, porque dentro de un
+iframe el `fetch` sale con el origen de la app, no con el del sitio que la
+embebe.
+
+| Variable | Qué controla |
+|---|---|
+| `SITIOS_EMBEBIBLES` | Qué sitios pueden meter la app en un `<iframe>`. Es la que importa para el embebido. Sin definir, no la embebe nadie. |
+| `ORIGENES_PERMITIDOS` | Desde qué origen se acepta una llamada a `/api`. Con el front y el BFF en el mismo dominio, **dejala vacía**: el mismo origen se reconoce solo. |
+
+```
+SITIOS_EMBEBIBLES=https://www.agencia-uno.com.ar,https://agencia-dos.com.ar
+```
+
+El embebido lo decide la cabecera `Content-Security-Policy: frame-ancestors`, y
+la manda **quien sirve el HTML del front**. En desarrollo la manda Vite, con esa
+misma variable. **En producción la tiene que mandar el servidor estático o el
+CDN**: si no, el navegador deja que lo embeba cualquiera y la lista no sirve de
+nada. Nginx:
+
+```nginx
+add_header Content-Security-Policy "frame-ancestors 'self' https://www.agencia-uno.com.ar https://agencia-dos.com.ar" always;
+```
+
+El BFF manda la misma cabecera en sus respuestas —cubre la constancia en PDF, que
+también se puede embeber— y además rechaza con 403 lo que venga de un origen
+ajeno, antes de mandar un correo o armar un PDF.
+
+### Límites
+
+`/api/solicitud` y `/api/certificado` no piden credenciales: cualquiera que sepa
+la URL puede llamarlos. Contra eso hay dos topes, porque **CORS no alcanza** —un
+`curl` no manda `Origin` ni mira las cabeceras de respuesta—:
+
+- **20 envíos por hora y por IP** a esos dos endpoints (`LIMITE_POR_HORA`), lo
+  que sobra para un vendedor y es poco para un script. Detrás de un reverse
+  proxy hay que poner `CONFIAR_EN_PROXY=1`, o el límite termina siendo uno solo
+  para todo el mundo. La cuenta vive en memoria: con más de una instancia, esto
+  se muda al proxy o a Redis.
+- **20 MB de cuerpo** en `/api/solicitud` (`LIMITE_SOLICITUD_MB`) y 1 MB en el
+  resto, mirando lo que llega y no lo que el `Content-Length` declara. Sin esto
+  un solo POST grande se come la memoria del proceso.
+
+> **Lo que queda abierto:** los dos topes hacen el abuso caro, no imposible.
+> Cerrarlo del todo pide que `/api/solicitud` exija una cotización viva —el `id`
+> que ya emite el BFF, con su TTL de media hora—, de modo que para mandar un
+> correo haya que recorrer el cotizador primero. Es un cambio chico de los dos
+> lados y el paso siguiente natural.
+
 ### Constancia en PDF
 
 El encabezado lleva el logo de CE Brokers a la izquierda y el de la aseguradora
@@ -151,5 +201,3 @@ muestra en la pantalla final. Migrar a una base es el próximo paso previsto.
   mínimo legible, marcado como provisorio.
 - **Faltan los textos de las nueve tomas de foto** (spec 7.5) y los catálogos
   definitivos de los selects (spec 7.4).
-- **El reCAPTCHA del motor está desactivado en producción**, sin relación con
-  este proyecto pero conviene mirarlo.

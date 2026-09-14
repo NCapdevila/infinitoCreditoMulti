@@ -25,7 +25,7 @@ const html = armarHtml({
       ['DNI', '11223344'],
       ['Sexo', 'Masculino'],
       ['Condición fiscal', 'Consumidor final'],
-      ['E-mail', 'ramirocapdevila23@gmail.com'],
+      ['E-mail', 'prueba.emision@ejemplo.com'],
       ['Teléfono', '+549 11 22334455'],
     ]},
     { titulo: 'Domicilio del vehículo', filas: [

@@ -111,9 +111,8 @@ resultados.
 
 ## Cosas a tener en cuenta
 
-- **reCAPTCHA está bypasseado en producción** (`/static/js/recaptcha.js`): la
-  validación real está comentada. El endpoint `/embed/validate-recaptcha/`
-  existe pero el cliente nunca lo llama.
+- **El BFF no manda ningún token de captcha** y hoy el motor no se lo pide. Si
+  eso cambia, los pasos empiezan a fallar y hay que sumarlo al cliente.
 - `/static/assets/cart.gif`, la animación de la pantalla de espera, pesa
   **2,4 MB**. Es la descarga más grande de todo el flujo, y cae justo en el
   momento de mayor ansiedad del usuario.

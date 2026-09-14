@@ -242,16 +242,6 @@
 
   <p class="prose" style="margin-top:28px">Eso resuelve de paso la ambigüedad 7.8 de la spec: <b>la fecha de nacimiento y el CP que aparecen en S12 sin haberse capturado vienen de acá.</b> El motor ya pide provincia y localidad, y el CP viaja con la cotización — es el mismo que S06 muestra como read-only.</p>
 
-  <div class="callout">
-    <h3>⚠ El reCAPTCHA está desactivado en producción</h3>
-    <p>En <code>/static/js/recaptcha.js</code>, la validación real está comentada y reemplazada por un bypass que siempre devuelve éxito:</p>
-    <pre>async validateRecaptcha(action, sessionKey) {
-    // BYPASS: Desactivar reCAPTCHA para desarrollo
-    sessionStorage.setItem(sessionKey, 'true');
-    return { success: true, cached: false };
-    // CÓDIGO ORIGINAL COMENTADO - Descomentar para producción</pre>
-    <p>El endpoint <code>/embed/validate-recaptcha/</code> existe y la site key se sirve en el HTML, pero el cliente nunca lo llama. El motor de cotización queda abierto a automatización. Tiene toda la pinta de un bypass de desarrollo que se fue a producción; conviene revisarlo con independencia de este proyecto.</p>
-  </div>
 </section>
 
 <section>

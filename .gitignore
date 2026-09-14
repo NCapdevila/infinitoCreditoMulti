@@ -2,6 +2,8 @@ node_modules/
 dist/
 .env
 .env.*
+# La plantilla sí va: es la documentación de qué variables hacen falta.
+!.env.example
 *.log
 
 # Capturas de tráfico del motor: traen cookies de sesión y datos de la

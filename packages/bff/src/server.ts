@@ -10,6 +10,21 @@ import {
 import { MotorClient, MotorHttpError } from './motor/client.js';
 import { MotorParseError, type MotorSession, type Step } from './motor/types.js';
 import type { Quotations } from './motor/quotations.js';
+import {
+  ErrorDemasiadoGrande,
+  LIMITE_JSON,
+  cabecerasDeSeguridad,
+  consumirCupo,
+  esPreflight,
+  evaluarOrigen,
+  hayAllowlist,
+  ipDe,
+  leerCuerpoLimitado,
+  limiteSolicitud,
+  limpiarCupos,
+  origenesPermitidos,
+  sitiosEmbebibles,
+} from './seguridad.js';
 
 /**
  * API del cotizador.
@@ -62,14 +77,11 @@ function responder(res: ServerResponse, status: number, cuerpo: unknown): void {
   res.end(json);
 }
 
-async function leerCuerpo(req: IncomingMessage): Promise<string> {
-  const trozos: Buffer[] = [];
-  for await (const trozo of req) trozos.push(trozo as Buffer);
-  return Buffer.concat(trozos).toString('utf-8');
-}
-
-async function leerJson(req: IncomingMessage): Promise<Record<string, unknown>> {
-  const crudo = await leerCuerpo(req);
+async function leerJson(
+  req: IncomingMessage,
+  maximo: number = LIMITE_JSON,
+): Promise<Record<string, unknown>> {
+  const crudo = await leerCuerpoLimitado(req, maximo);
   if (crudo === '') return {};
   try {
     return JSON.parse(crudo) as Record<string, unknown>;
@@ -87,7 +99,7 @@ async function leerJson(req: IncomingMessage): Promise<Record<string, unknown>> 
  */
 async function leerJsonOFormulario(req: IncomingMessage): Promise<Record<string, unknown>> {
   const tipo = req.headers['content-type'] ?? '';
-  const crudo = await leerCuerpo(req);
+  const crudo = await leerCuerpoLimitado(req, LIMITE_JSON);
   if (crudo === '') return {};
 
   if (tipo.includes('application/x-www-form-urlencoded')) {
@@ -286,7 +298,8 @@ async function certificado(req: IncomingMessage, res: ServerResponse): Promise<v
  * descarga de la constancia.
  */
 async function solicitud(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const cuerpo = await leerJson(req);
+  // El único endpoint con adjuntos: las fotos y la cédula viajan acá adentro.
+  const cuerpo = await leerJson(req, limiteSolicitud());
   const datos = cuerpo['certificado'] as unknown as DatosCertificado | undefined;
   const correo = cuerpo['correo'] as unknown as Solicitud | undefined;
 
@@ -340,16 +353,59 @@ async function solicitud(req: IncomingMessage, res: ServerResponse): Promise<voi
 
 // ── servidor ───────────────────────────────────────────────────────────
 
+/**
+ * Endpoints que cuestan: mandan correo o arman un PDF.
+ *
+ * Son los que hay que limitar. Los pasos del cotizador no: el vendedor los
+ * recorre de a muchos y quedan cubiertos por el TTL de la cotización.
+ */
+const CAROS = new Set(['solicitud', 'certificado']);
+
 const servidor = createServer((req, res) => {
   void (async () => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
       const partes = url.pathname.split('/').filter((p) => p !== '');
       const metodo = req.method ?? 'GET';
+      const origen = req.headers.origin;
+
+      // Antes que nada: de dónde viene. Rechazar acá evita hacer el trabajo
+      // —mandar un correo, armar un PDF— para una respuesta que el navegador
+      // igual iba a esconder.
+      const veredicto = evaluarOrigen(origen, req.headers.host);
+      for (const [nombre, valor] of Object.entries(cabecerasDeSeguridad())) {
+        res.setHeader(nombre, valor);
+      }
+      if (!veredicto.permitido) {
+        console.warn('[cors]', veredicto.motivo);
+        responder(res, 403, { error: 'origen no permitido' });
+        return;
+      }
+      for (const [nombre, valor] of Object.entries(veredicto.cabeceras)) {
+        res.setHeader(nombre, valor);
+      }
+
+      // El preflight no llega a ninguna ruta: se contesta y listo.
+      if (esPreflight(metodo, origen)) {
+        res.writeHead(204).end();
+        return;
+      }
 
       if (partes[0] !== 'api') {
         responder(res, 404, { error: 'ruta desconocida' });
         return;
+      }
+
+      if (partes[1] !== undefined && CAROS.has(partes[1]) && metodo === 'POST') {
+        const cupo = consumirCupo(`${partes[1]}:${ipDe(req)}`);
+        if (!cupo.permitido) {
+          res.setHeader('Retry-After', String(cupo.esperaSegundos));
+          responder(res, 429, {
+            error: 'demasiados pedidos desde esta dirección; probá de nuevo más tarde',
+            esperaSegundos: cupo.esperaSegundos,
+          });
+          return;
+        }
       }
 
       if (partes[1] === 'certificado' && metodo === 'POST') {
@@ -391,6 +447,14 @@ const servidor = createServer((req, res) => {
         responder(res, 400, { error: error.message });
         return;
       }
+      if (error instanceof ErrorDemasiadoGrande) {
+        responder(res, 413, { error: error.message });
+        // El resto del cuerpo ya no se va a leer: se corta la conexión recién
+        // después de que la respuesta salió, para que el cliente vea el 413 y
+        // no un corte seco.
+        res.on('finish', () => req.destroy());
+        return;
+      }
       // Un cambio de markup del motor no es un error del usuario: se reporta
       // como 502 y con el detalle, que es lo que hace falta para arreglarlo.
       if (error instanceof MotorParseError) {
@@ -409,9 +473,20 @@ const servidor = createServer((req, res) => {
   })();
 });
 
+/** Las ventanas vencidas del rate limit no le sirven a nadie. */
+setInterval(() => limpiarCupos(), 10 * 60 * 1000).unref();
+
 servidor.listen(PUERTO, () => {
   console.log(`BFF escuchando en http://localhost:${PUERTO}`);
   console.log(`motor: ${process.env['MOTOR_URL'] ?? 'https://infinito.foxia.ar'}`);
+  console.log(`orígenes permitidos: ${origenesPermitidos().join(', ')}`);
+  console.log(`sitios que pueden embeber: ${sitiosEmbebibles().join(', ') || 'ninguno'}`);
+  if (!hayAllowlist()) {
+    console.warn(
+      '[seguridad] SITIOS_EMBEBIBLES no está definida: ningún sitio externo puede ' +
+        'embeber la app. En producción hay que definirla con los dos sitios de agencia.',
+    );
+  }
 });
 
 /**

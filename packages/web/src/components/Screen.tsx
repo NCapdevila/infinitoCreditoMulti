@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button } from './Button.tsx';
 import { ChevronLeftIcon, LogoInfinito } from './icons.tsx';
+import { ID_SCROLL } from '../lib/scroll.ts';
 
 /**
  * C1 · Header, y el armazón que comparten todas las pantallas.
@@ -13,6 +14,10 @@ import { ChevronLeftIcon, LogoInfinito } from './icons.tsx';
  *
  * El contenido va en un bloque angosto y centrado (`ancho`), que es lo que
  * mantiene legible la lectura en pantallas grandes.
+ *
+ * El armazón está clavado al alto de la ventana y sólo scrollea el medio: ver
+ * [`lib/scroll.ts`](../lib/scroll.ts), que es también de donde sale el
+ * `irArriba` que usa el router.
  */
 
 /** Ancho del bloque de contenido en escritorio, según lo que contenga. */
@@ -52,13 +57,15 @@ interface ScreenProps {
   /** El logo vuelve al inicio. Sin handler, el logo no es clickeable. */
   readonly onInicio?: () => void;
   /**
-   * Suma un botón «Volver» junto a las acciones.
+   * Dónde se ofrece el paso atrás. Sin `onBack` no se ofrece en ningún lado.
    *
-   * En el formulario de contratación el chevron del header queda lejos de donde
-   * está la vista —sobre todo en escritorio—, así que el paso atrás se ofrece
-   * también al pie, al lado del que avanza.
+   * - `'header'` — sólo el chevron, arriba a la izquierda. Es lo que hace el
+   *   motor en el cotizador.
+   * - `'ambos'` — y además un botón al pie. En el formulario de contratación el
+   *   chevron queda lejos de donde está la vista, sobre todo en escritorio.
+   * - `'acciones'` — sólo el botón al pie, al lado del que avanza.
    */
-  readonly volverEnAcciones?: boolean;
+  readonly volver?: 'header' | 'ambos' | 'acciones';
 }
 
 export function Screen({
@@ -73,9 +80,11 @@ export function Screen({
   actions,
   ancho = 'campo',
   onInicio,
-  volverEnAcciones,
+  volver = 'header',
 }: ScreenProps) {
-  const mostrarVolver = volverEnAcciones === true && onBack !== undefined;
+  const hayVuelta = onBack !== undefined;
+  const volverEnHeader = hayVuelta && volver !== 'acciones';
+  const mostrarVolver = hayVuelta && volver !== 'header';
 
   /**
    * El logo vuelve al inicio.
@@ -94,8 +103,29 @@ export function Screen({
     window.location.href = '/';
   };
 
+  const botonera = (actions !== undefined || mostrarVolver) && (
+    <div className="mx-auto flex w-full flex-col gap-3 md:max-w-(--w-formulario) md:flex-row md:justify-center md:gap-4 [&>*]:md:max-w-(--w-boton)">
+      {actions}
+      {mostrarVolver && (
+        <Button variant="secondary" onClick={onBack}>
+          Volver
+        </Button>
+      )}
+    </div>
+  );
+
+  /*
+    El armazón está clavado al alto de la ventana: el header queda fijo arriba y
+    todo lo demás —contenido y botonera— scrollea debajo. El documento no crece,
+    así que embebida la página de la agencia deja de crecer con la pantalla más
+    larga del cotizador y de sobrarle aire en la más corta.
+
+    Lo que scrollea es el contenido, no el lugar de la botonera: va pegada a lo
+    último que haya, sin importar cuánto mida la pantalla ni el `height` que le
+    ponga la agencia al iframe.
+  */
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="flex h-dvh flex-col overflow-hidden bg-white">
       <header
         // Los 112 px del Figma dejaban demasiado aire alrededor del logo. El
         // header ahora se ajusta a lo que contiene: el logo lo llena.
@@ -104,12 +134,15 @@ export function Screen({
         }`}
       >
         <div className="w-10">
-          {onBack !== undefined && (
+          {volverEnHeader && (
             <button
               type="button"
               onClick={onBack}
               aria-label="Volver al paso anterior"
-              className="bg-surface flex size-10 items-center justify-center rounded-full text-white"
+              // Blanco sobre `--color-surface` no se veía: el círculo es casi
+              // blanco. El motor lo pinta sobre #ccc, que es lo que hace legible
+              // el chevron blanco.
+              className="bg-surface-strong flex size-10 items-center justify-center rounded-full text-white"
             >
               <ChevronLeftIcon width={20} height={20} />
             </button>
@@ -127,50 +160,54 @@ export function Screen({
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-(--container-app) flex-1 flex-col px-gutter pb-10 md:max-w-(--container-app-md) lg:max-w-(--container-app-lg)">
-        {eyebrow !== undefined && (
-          <p className="text-muted mt-8 text-center text-xs tracking-[0.18em] uppercase md:text-sm">
-            {eyebrow}
-          </p>
-        )}
+      {/*
+        Acá vive el scroll, y no en el documento. `min-h-0` es lo que se lo
+        permite: sin eso un hijo flex no se achica por debajo de su contenido y
+        el contenedor crece en vez de scrollear. `overscroll-contain` corta el
+        encadenado —llegar al final del cotizador no sigue bajando la página que
+        lo embebe—.
+      */}
+      <div id={ID_SCROLL} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <main className="mx-auto flex w-full max-w-(--container-app) flex-col px-gutter pb-10 md:max-w-(--container-app-md) lg:max-w-(--container-app-lg)">
+          {eyebrow !== undefined && (
+            <p className="text-muted mt-8 text-center text-xs tracking-[0.18em] uppercase md:text-sm">
+              {eyebrow}
+            </p>
+          )}
 
-        {title !== undefined && (
-          <h1 className="text-primary mt-3 text-center text-[26px] leading-tight font-semibold text-balance md:mt-4 md:text-[40px]">
-            {title}
-          </h1>
-        )}
-        {subtitle !== undefined && (
-          <p className="text-accent mx-auto mt-2 text-center text-sm text-balance md:mt-3 md:max-w-(--w-formulario) md:text-base">
-            {subtitle}
-          </p>
-        )}
-        {description !== undefined && (
-          <p className="text-muted mx-auto mt-3 text-center text-sm text-balance md:text-xl">
-            {description}
-          </p>
-        )}
-        {nota !== undefined && (
-          <p className="text-accent mt-3 text-center text-sm font-medium">{nota}</p>
-        )}
+          {title !== undefined && (
+            <h1 className="text-primary mt-3 text-center text-[26px] leading-tight font-semibold text-balance md:mt-4 md:text-[40px]">
+              {title}
+            </h1>
+          )}
+          {subtitle !== undefined && (
+            <p className="text-accent mx-auto mt-2 text-center text-sm text-balance md:mt-3 md:max-w-(--w-formulario) md:text-base">
+              {subtitle}
+            </p>
+          )}
+          {description !== undefined && (
+            <p className="text-muted mx-auto mt-3 text-center text-sm text-balance md:text-xl">
+              {description}
+            </p>
+          )}
+          {nota !== undefined && (
+            <p className="text-accent mt-3 text-center text-sm font-medium">{nota}</p>
+          )}
 
-        {/*
-          En mobile el contenido se estira y empuja los botones al pie, como en
-          el Figma. En escritorio no: los botones van justo debajo del
-          contenido, que es donde los pone el motor.
-        */}
-        <div className={`mx-auto w-full flex-1 md:flex-none ${ANCHOS[ancho]}`}>{children}</div>
+          <div className={`mx-auto w-full ${ANCHOS[ancho]}`}>{children}</div>
 
-        {(actions !== undefined || mostrarVolver) && (
-          <div className="mx-auto mt-8 flex w-full flex-col gap-3 md:mt-12 md:max-w-(--w-formulario) md:flex-row md:justify-center md:gap-4 [&>*]:md:max-w-(--w-boton)">
-            {actions}
-            {mostrarVolver && (
-              <Button variant="secondary" onClick={onBack}>
-                Volver
-              </Button>
-            )}
-          </div>
-        )}
-      </main>
+          {/*
+            La botonera va pegada al contenido, no al pie de la pantalla.
+
+            Nada la empuja hacia abajo: ni un espaciador que crezca ni el alto
+            de la ventana. En una pantalla corta queda justo debajo del último
+            campo aunque sobre media pantalla; en una larga hay que scrollear
+            hasta ella, como cualquier formulario. La distancia al contenido es
+            siempre la misma, en el celular y en el escritorio.
+          */}
+          {botonera !== false && <div className="mt-8 md:mt-12">{botonera}</div>}
+        </main>
+      </div>
     </div>
   );
 }

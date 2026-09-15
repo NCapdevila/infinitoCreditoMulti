@@ -23,7 +23,7 @@ export function S10FotosCargadas({ fotos, onNext, onRehacer, onBack }: Props) {
 
   return (
     <Screen
-      volverEnAcciones
+      volver="ambos"
       ancho="fotos"
       onBack={onBack}
       title="Fotos cargadas"

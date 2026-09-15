@@ -154,7 +154,7 @@ export function S11Pago({ valores, onChange, onNext, onBack }: Props) {
 
   return (
     <Screen
-      volverEnAcciones
+      volver="ambos"
       ancho="formulario"
       onBack={onBack}
       title="Ingresá el medio de pago"

@@ -26,7 +26,7 @@ export function S07Vehiculo({ valores, onChange, onNext, onCeroKm, onBack }: Pro
 
   return (
     <Screen
-      volverEnAcciones
+      volver="ambos"
       ancho="formulario"
       onBack={onBack}
       title="Contanos más sobre tu auto"

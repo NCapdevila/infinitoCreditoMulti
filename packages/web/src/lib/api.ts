@@ -14,6 +14,15 @@ export interface EstadoCotizacion {
   readonly paso: Step;
   /** El motor ya está cotizando: corresponde pedir resultados, no pasos. */
   readonly cotizando: boolean;
+  /**
+   * A dónde lleva el botón de volver, o `null` si es el primer paso.
+   *
+   * Lo decide el BFF, que es el que sabe por dónde pasó la cotización. El front
+   * no lleva la cuenta: si la llevara, tendría que coincidir con la del
+   * servidor —que es la que autoriza— y bastaría que se desfasaran para que
+   * volver empezara a dar 400.
+   */
+  readonly anterior: string | null;
 }
 
 /** El BFF respondió con un error entendible para el usuario. */

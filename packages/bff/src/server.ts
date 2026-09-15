@@ -52,6 +52,15 @@ interface Cotizacion {
   valores: Record<string, string>;
   /** El motor ya está cotizando: se piden resultados, no pasos. */
   cotizando: boolean;
+  /**
+   * Los pasos por los que ya pasó esta cotización, en orden.
+   *
+   * Es lo que hace posible el botón de volver. El motor lo resuelve con
+   * `history.back()` del navegador, que no le sirve a un front que es una sola
+   * página; acá el camino recorrido es del servidor, que es el único que puede
+   * autorizar un paso atrás sin que el front invente ids.
+   */
+  visitados: string[];
   creada: number;
 }
 
@@ -134,6 +143,8 @@ const paraElFront = (id: string, c: Cotizacion) => ({
   id,
   paso: c.paso,
   cotizando: c.cotizando,
+  /** A dónde lleva el botón de volver, o `null` si es el primer paso. */
+  anterior: c.visitados[c.visitados.length - 2] ?? null,
 });
 
 // ── rutas ──────────────────────────────────────────────────────────────
@@ -146,6 +157,7 @@ async function crear(res: ServerResponse): Promise<void> {
     paso: step,
     valores: {},
     cotizando: false,
+    visitados: [step.id],
     creada: Date.now(),
   });
   responder(res, 201, paraElFront(id, cotizaciones.get(id)!));
@@ -183,6 +195,7 @@ async function avanzar(req: IncomingMessage, res: ServerResponse, id: string): P
 
   cotizacion.session = session;
   cotizacion.paso = step;
+  cotizacion.visitados.push(step.id);
   Object.assign(cotizacion.valores, valores);
 
   if (step.kind === 'waiting') {
@@ -203,17 +216,23 @@ async function ir(req: IncomingMessage, res: ServerResponse, id: string): Promis
   const destino = cuerpo['step'];
   if (typeof destino !== 'string') throw new ErrorDeCliente('falta `step`');
 
-  const permitidas =
+  const salidas =
     cotizacion.paso.kind === 'waiting' ? [] : cotizacion.paso.actions.map((a) => a.step);
-  if (!permitidas.includes(destino)) {
-    // Sólo se navega a donde el paso actual ofrece ir: evita que el front
-    // invente ids de paso y termine en una pantalla incoherente.
+  // Se navega a una salida del paso actual, o a un paso por el que esta misma
+  // cotización ya pasó —el botón de volver—. Lo que no se puede es inventar un
+  // id y terminar en una pantalla incoherente, que es de lo que cuida este
+  // control: las dos listas las escribió el servidor, no el front.
+  const atras = cotizacion.visitados.indexOf(destino);
+  if (!salidas.includes(destino) && atras === -1) {
     throw new ErrorDeCliente(`el paso actual no ofrece ir a "${destino}"`);
   }
 
   const { session, step } = await motor.goTo(destino, cotizacion.session);
   cotizacion.session = session;
   cotizacion.paso = step;
+  // Volver corta el camino donde estaba ese paso; una salida lateral lo sigue.
+  if (atras !== -1) cotizacion.visitados.length = atras + 1;
+  else cotizacion.visitados.push(step.id);
   responder(res, 200, paraElFront(id, cotizacion));
 }
 

@@ -125,7 +125,7 @@ export function S04Asegurado({ valores, onChange, onNext, onBack }: Props) {
 
   return (
     <Screen
-      volverEnAcciones
+      volver="ambos"
       ancho="formulario"
       onBack={onBack}
       title="Datos del asegurado"

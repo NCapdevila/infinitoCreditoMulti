@@ -10,6 +10,13 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;700&display=swap"
     />
+    <!--
+      El auto de la pantalla de espera pesa 2,42 MB y aparece de golpe, recién
+      después de diez pasos. `prefetch` lo baja en los ratos libres del
+      navegador —no compite con la primera pantalla, como haría `preload`— y para
+      cuando el vendedor termina de cargar los datos ya está en caché.
+    -->
+    <link rel="prefetch" as="image" href="/cart.gif" />
   </head>
   <body>
     <div id="root"></div>

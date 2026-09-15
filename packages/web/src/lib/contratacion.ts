@@ -156,51 +156,53 @@ export const CONDICIONES_FISCALES = [
  * «Cédula verde título»). Se resuelve con un enum único y una etiqueta
  * derivada de él, que era la recomendación de la spec (7.6).
  *
- * `ejemplo` apunta a la foto de referencia de cada toma, recortada del propio
- * prototipo: es lo que le muestra al vendedor qué encuadre se espera.
+ * `ejemplo` apunta a la foto de referencia de cada toma: es lo que le muestra al
+ * vendedor qué encuadre se espera. Los nombres de archivo no siguen a los
+ * `tipo` —`lateral_izq` es el lado del conductor, e `interior` es el parabrisas
+ * visto desde adentro—, así que conviene mirar la imagen antes de repuntarlas.
  */
 export const TOMAS = [
   {
     tipo: 'FRENTE',
     label: 'Frente',
     tip: 'Tiene que verse la patente completa.',
-    ejemplo: '/tomas/frente.jpg',
+    ejemplo: '/tomas/frente.png',
   },
   {
     tipo: 'TRASERA',
     label: 'Trasera',
     tip: 'Tiene que verse la patente completa.',
-    ejemplo: '/tomas/trasera.jpg',
+    ejemplo: '/tomas/trasera.png',
   },
   {
     tipo: 'LATERAL_CONDUCTOR',
     label: 'Lateral conductor',
     tip: 'Los vidrios tienen que estar visibles.',
-    ejemplo: '/tomas/lateral-conductor.jpg',
+    ejemplo: '/tomas/lateral_izq.png',
   },
   {
     tipo: 'LATERAL_PASAJERO',
     label: 'Lateral pasajero',
     tip: 'Los vidrios tienen que estar visibles.',
-    ejemplo: '/tomas/lateral-pasajero.jpg',
+    ejemplo: '/tomas/lateral_der.png',
   },
   {
     tipo: 'PARABRISAS',
     label: 'Parabrisas',
     tip: 'Sin reflejos que tapen el vidrio.',
-    ejemplo: '/tomas/parabrisas.jpg',
+    ejemplo: '/tomas/interior.png',
   },
   {
     tipo: 'RUEDA_AUXILIO',
     label: 'Rueda de auxilio',
-    ejemplo: '/tomas/rueda-de-auxilio.jpg',
+    ejemplo: '/tomas/rueda_auxilio.png',
   },
   {
     tipo: 'TABLERO_CONTACTO',
     label: 'Tablero de contacto',
-    ejemplo: '/tomas/tablero-de-contacto.jpg',
+    ejemplo: '/tomas/tablero.png',
   },
-  { tipo: 'TECHO', label: 'Techo', ejemplo: '/tomas/techo.jpg' },
+  { tipo: 'TECHO', label: 'Techo', ejemplo: '/tomas/techo.png' },
   // Sin ejemplo: el documento se reconoce solo y una imagen de muestra con
   // datos de otra persona confunde más de lo que ayuda.
   { tipo: 'CEDULA_VERDE', label: 'Cédula verde o título' },

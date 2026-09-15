@@ -71,6 +71,34 @@ El BFF manda la misma cabecera en sus respuestas —cubre la constancia en PDF, 
 también se puede embeber— y además rechaza con 403 lo que venga de un origen
 ajeno, antes de mandar un correo o armar un PDF.
 
+### Qué alto darle al iframe
+
+```html
+<iframe src="https://cotizador.cebrokers.com.ar/" width="100%" height="620"
+        style="border:0" title="Cotizador"></iframe>
+```
+
+**El `height` manda y la app no lo discute.** La app está clavada al alto de su
+ventana —y adentro de un iframe, esa ventana es el marco—: el header queda fijo
+arriba y el resto scrollea adentro. El documento no crece nunca, así que la
+página de la agencia tampoco, sea cual sea la pantalla del cotizador. Es el
+mismo comportamiento que suelta, no un modo aparte: ver
+[packages/web/src/lib/scroll.ts](packages/web/src/lib/scroll.ts).
+
+Los botones van siempre pegados al contenido, no al pie del marco: un `height`
+de más no los empuja hacia abajo, deja blanco después de ellos.
+
+Eso invierte el criterio de siempre: **conviene un `height` chico**. No hay que
+elegirlo para que entre la pantalla más larga —ninguna entra: «¿cuál es la
+patente?» pide 603 px de contenido y la grilla de marcas 869 px, y las de fotos
+más—, y estirarlo para que entren sólo deja cientos de píxeles en blanco en las
+cortas. **560–640 px anda bien en mobile y en escritorio**: la primera pantalla
+entra justa y el resto scrollea, con el botón que avanza siempre a la vista.
+
+> Ojo con los constructores de sitios que ponen `height` en porcentaje o en
+> `100vh`: adentro del iframe eso se resuelve contra el marco, no contra el
+> celular, y vuelve el hueco. Un valor en px.
+
 ### Límites
 
 `/api/solicitud` y `/api/certificado` no piden credenciales: cualquiera que sepa

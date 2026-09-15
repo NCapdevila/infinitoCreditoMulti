@@ -31,7 +31,7 @@ export function S02Agencia({ valores, onChange, onNext, onBack }: Props) {
 
   return (
     <Screen
-      volverEnAcciones
+      volver="ambos"
       ancho="formulario"
       onBack={onBack}
       title="Datos de la agencia"

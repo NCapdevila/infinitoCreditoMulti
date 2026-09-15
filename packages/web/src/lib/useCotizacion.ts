@@ -40,9 +40,11 @@ export interface Cotizacion {
   readonly cargando: boolean;
   readonly enviando: boolean;
   readonly error: string | null;
-  readonly historial: readonly string[];
+  /** Hay a dónde volver: lo dice el BFF, recién a partir del segundo paso. */
+  readonly puedeVolver: boolean;
   avanzar: (valores: Record<string, string>) => Promise<void>;
   ir: (step: string) => Promise<void>;
+  volver: () => Promise<void>;
   elegir: (quote: Quote) => Promise<Record<string, string>>;
   reintentar: () => void;
 }
@@ -56,8 +58,6 @@ export function useCotizacion(): Cotizacion {
   const [error, setError] = useState<string | null>(null);
   const [intento, setIntento] = useState(0);
   const [buscandoMas, setBuscandoMas] = useState(false);
-  /** Ids de paso ya visitados, para saber si se puede volver. */
-  const [historial, setHistorial] = useState<readonly string[]>([]);
 
   const mensajeDe = (e: unknown) =>
     e instanceof ErrorDeApi ? e.message : 'No pudimos conectarnos. Probá de nuevo.';
@@ -72,7 +72,6 @@ export function useCotizacion(): Cotizacion {
       .then((nuevo) => {
         if (!vigente) return;
         setEstado(nuevo);
-        setHistorial([nuevo.paso.id]);
       })
       .catch((e: unknown) => vigente && setError(mensajeDe(e)))
       .finally(() => vigente && setCargando(false));
@@ -161,7 +160,6 @@ export function useCotizacion(): Cotizacion {
       try {
         const siguiente = await api.avanzar(id, valores);
         setEstado(siguiente);
-        setHistorial((h) => [...h, siguiente.paso.id]);
       } catch (e: unknown) {
         setError(mensajeDe(e));
       } finally {
@@ -179,7 +177,6 @@ export function useCotizacion(): Cotizacion {
       try {
         const siguiente = await api.ir(id, step);
         setEstado(siguiente);
-        setHistorial((h) => [...h, siguiente.paso.id]);
       } catch (e: unknown) {
         setError(mensajeDe(e));
       } finally {
@@ -188,6 +185,29 @@ export function useCotizacion(): Cotizacion {
     },
     [id],
   );
+
+  /**
+   * Vuelve al paso anterior.
+   *
+   * El motor resuelve esto con `history.back()` del navegador, que acá no
+   * sirve: la app es una sola página y nunca empujó entradas al historial, así
+   * que `history.back()` se llevaría al vendedor fuera del cotizador —y
+   * embebida, fuera del sitio de la agencia—. A dónde se vuelve lo dice el BFF
+   * en `anterior`; acá sólo se lo pide.
+   */
+  const anterior = estado?.anterior ?? null;
+  const volver = useCallback(async () => {
+    if (id === undefined || anterior === null) return;
+    setEnviando(true);
+    setError(null);
+    try {
+      setEstado(await api.ir(id, anterior));
+    } catch (e: unknown) {
+      setError(mensajeDe(e));
+    } finally {
+      setEnviando(false);
+    }
+  }, [id, anterior]);
 
   const elegir = useCallback(
     async (quote: Quote) => {
@@ -208,9 +228,10 @@ export function useCotizacion(): Cotizacion {
     cargando,
     enviando,
     error,
-    historial,
+    puedeVolver: anterior !== null,
     avanzar,
     ir,
+    volver,
     elegir,
     reintentar,
   };

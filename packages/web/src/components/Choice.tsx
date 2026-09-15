@@ -134,21 +134,28 @@ export function OptionList({
 interface CardGridProps {
   readonly items: readonly Option[];
   readonly onSelect: (value: string) => void;
-  /** 2 columnas para logos, 3 para años. */
-  readonly columns?: 2 | 3;
+  /**
+   * Qué va adentro de la tarjeta, que es lo único que cambia entre los dos
+   * pasos que usan esta grilla. Ver el alto, abajo.
+   */
+  readonly contenido?: 'logo' | 'texto';
 }
 
 /**
  * Grilla de tarjetas: marcas destacadas (con logo) y años.
  *
- * En escritorio el motor las pone en 5 columnas y agranda las tarjetas — con 2
- * columnas estiradas la pantalla se ve como un mobile ampliado.
+ * Misma grilla para los dos pasos —dos columnas en mobile, cinco en escritorio,
+ * medido contra el motor— y una sola diferencia: el alto de la tarjeta. Un logo
+ * necesita caja; un año son cuatro dígitos y en una caja de marca queda flotando
+ * en el medio de la nada, con la lista el doble de larga de lo que debería.
  */
-export function CardGrid({ items, onSelect, columns = 2 }: CardGridProps) {
+export function CardGrid({ items, onSelect, contenido = 'logo' }: CardGridProps) {
+  // Los dos altos salen de medir el motor: 138 px la marca, 85 px el año —y el
+  // año no crece en escritorio, sigue siendo una tira baja—.
+  const alto = contenido === 'texto' ? 'h-[85px]' : 'h-32 md:h-36';
+
   return (
-    // El motor usa dos columnas en mobile tanto para marcas como para años, y
-    // pasa a cinco en escritorio.
-    <div className={`grid grid-cols-2 gap-4 ${columns === 3 ? 'md:grid-cols-6' : 'md:grid-cols-5'}`}>
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
       {items.map((item) => (
         <button
           key={item.value}
@@ -156,7 +163,7 @@ export function CardGrid({ items, onSelect, columns = 2 }: CardGridProps) {
           onClick={() => onSelect(item.value)}
           // Sin borde y con sombra suave: así se ven en el motor. El borde las
           // hacía parecer campos de formulario en vez de tarjetas.
-          className="flex h-32 flex-col items-center justify-center gap-1 rounded-xl bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.10)] transition-shadow hover:shadow-[0_4px_18px_rgba(51,121,246,0.22)] md:h-36"
+          className={`flex ${alto} flex-col items-center justify-center gap-1 rounded-xl bg-white p-3 shadow-[0_2px_10px_rgba(0,0,0,0.10)] transition-shadow hover:shadow-[0_4px_18px_rgba(51,121,246,0.22)]`}
         >
           {item.iconUrl !== undefined ? (
             <img

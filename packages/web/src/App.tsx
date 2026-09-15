@@ -23,6 +23,7 @@ import { contratacionDeEjemplo, type Contratacion } from './lib/contratacion.ts'
 import { descargarConstancia } from './lib/certificado.ts';
 import { enviarSolicitud } from './lib/solicitud.ts';
 import { abrirWhatsapp as abrirChat, mensajeDeCobertura } from './lib/whatsapp.ts';
+import { irArriba } from './lib/scroll.ts';
 
 /**
  * Flujo completo, tal como lo opera el vendedor: cotiza, elige cobertura y
@@ -67,8 +68,6 @@ export function App() {
   >(undefined);
   /** Una edición lanzada desde S12 vuelve al resumen, no sigue el camino. */
   const [volverAResumen, setVolverAResumen] = useState(false);
-
-  const irArriba = () => window.scrollTo({ top: 0 });
 
   const irA = (pantalla: PantallaS) => {
     setContratando(pantalla);
@@ -141,7 +140,10 @@ export function App() {
       return <QError mensaje={error} onReintentar={cotizacion.reintentar} />;
     }
     if (cargando || estado === null) {
-      return <QBuscando titulo="Un momento" descripcion="Estamos preparando tu cotización." />;
+      // Acá no hay ninguna cotización en curso: la app recién está pidiéndole el
+      // primer paso al BFF. Decír que «estamos preparando tu cotización» antes de
+      // que el vendedor cargue un solo dato promete algo que no está pasando.
+      return <QBuscando titulo="Un momento" descripcion="Estamos cargando el cotizador." />;
     }
 
     if (estado.cotizando) {
@@ -173,6 +175,9 @@ export function App() {
         error={error}
         onSubmit={(valores) => void cotizacion.avanzar(valores)}
         onAction={(step) => void cotizacion.ir(step)}
+        // Sin handler el chevron no se dibuja: en el primer paso no hay a dónde
+        // volver, igual que en el motor.
+        {...(cotizacion.puedeVolver ? { onBack: () => void cotizacion.volver() } : {})}
       />
     );
   }

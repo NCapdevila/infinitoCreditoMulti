@@ -35,7 +35,7 @@ export function S05Complemento({ valores, onChange, onNext, onBack }: Props) {
 
   return (
     <Screen
-      volverEnAcciones
+      volver="ambos"
       ancho="campo"
       onBack={onBack}
       title="Datos del asegurado"

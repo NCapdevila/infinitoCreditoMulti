@@ -7,7 +7,25 @@
  * uno solo deja la app sin pasos que mostrar, así que se lanzan de a pares y si
  * uno se cae, se corta el otro.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+
+/**
+ * Baja un hijo y todo lo que cuelgue de él.
+ *
+ * En Windows `npm` es un `.cmd`, así que hay que lanzarlo con `shell: true` y el
+ * hijo directo termina siendo un `cmd.exe`. `kill()` mata ese `cmd` y deja vite
+ * y tsx vivos, escuchando el puerto: cada Ctrl-C dejaba un par huérfano y el
+ * `npm run dev` siguiente fallaba con «Port 5180 is already in use». `taskkill
+ * /T` baja el árbol entero, que es lo único que corta esa herencia.
+ */
+const matarArbol = (hijo) => {
+  if (hijo.pid === undefined || hijo.exitCode !== null) return;
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/PID', String(hijo.pid), '/T', '/F'], { stdio: 'ignore' });
+  } else {
+    hijo.kill();
+  }
+};
 
 const procesos = [
   { nombre: 'bff', color: '\x1b[36m', args: ['run', 'dev', '-w', '@infinito/bff'] },
@@ -21,7 +39,7 @@ let cerrando = false;
 const cerrarTodo = (codigo) => {
   if (cerrando) return;
   cerrando = true;
-  for (const p of lanzados) p.kill();
+  for (const p of lanzados) matarArbol(p);
   process.exit(codigo);
 };
 

@@ -73,6 +73,7 @@ export function QStepScreen({
     return (
       <Screen
         onBack={onBack}
+        volver="acciones"
         eyebrow={step.eyebrow}
         title={step.title}
         ancho="campo"
@@ -158,6 +159,9 @@ export function QStepScreen({
   return (
     <Screen
       onBack={onBack}
+      // Al pie y no en el header: el paso atrás es un botón más, al lado del que
+      // avanza, donde ya está la vista después de elegir.
+      volver="acciones"
       eyebrow={step.eyebrow}
       title={step.title}
       description={step.description}
@@ -216,7 +220,7 @@ export function QStepScreen({
           <CardGrid
             items={listado}
             onSelect={(value) => onSubmit({ [step.name]: value })}
-            columns={step.name === 'year' ? 3 : 2}
+            contenido={step.name === 'year' ? 'texto' : 'logo'}
           />
         )}
       </div>

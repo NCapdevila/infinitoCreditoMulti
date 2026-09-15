@@ -75,8 +75,12 @@ const LOGO = fileURLToPath(new URL('../assets/logo-ce-brokers.png', import.meta.
 const LOGO_ANCHO = 132;
 const LOGO_ALTO = LOGO_ANCHO / 5.63;
 
-/** Alto de la banda del encabezado: todo se alinea a su centro. */
-const CABECERA_ALTO = 34;
+/**
+ * Alto de la fila de logos: el más alto de los dos manda y el otro se centra
+ * contra él. Ubicarlos por el borde superior los desalinea, porque las dos
+ * marcas tienen proporciones distintas.
+ */
+const FILA_LOGOS = 24;
 
 /** Logos de las aseguradoras, por nombre normalizado. */
 const LOGO_ASEGURADORA_ANCHO = 96;
@@ -144,11 +148,16 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
 
   // ── encabezado ───────────────────────────────────────────────────────
   /*
-   * Los tres elementos —logo, título y aseguradora— se centran sobre una misma
-   * banda. Antes cada uno se ubicaba por su borde superior y, como tienen
-   * alturas distintas, el logo quedaba más abajo que el título.
+   * Dos filas: las dos marcas arriba —CE Brokers a la izquierda, la aseguradora
+   * a la derecha— y el título debajo, arrancando en el margen.
+   *
+   * Antes compartían una sola banda, con el título metido entre los dos logos.
+   * Leía mal —los logos parecían colgar del título en vez de encabezar la hoja—
+   * y además el título nunca quedaba en el mismo lugar: el hueco de la izquierda
+   * depende del ancho del logo y el de la derecha de si la aseguradora tiene
+   * logo o no.
    */
-  const centrado = (alto: number) => MARGEN + (CABECERA_ALTO - alto) / 2;
+  const centrado = (alto: number) => MARGEN + (FILA_LOGOS - alto) / 2;
 
   // Los logos son archivos de marca, no texto dibujado: el degradado y la
   // tipografía propia no se reproducen con las fuentes del PDF.
@@ -168,7 +177,6 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
   // Si es una compañía nueva y todavía no tenemos su logo, el título usa ese
   // ancho: el nombre ya figura en el cuerpo del documento.
   const logoCia = logoDeAseguradora(poliza.aseguradora);
-  let huecoDerecha = 0;
   if (logoCia !== undefined) {
     doc.image(
       logoCia,
@@ -176,24 +184,23 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
       centrado(LOGO_ASEGURADORA_ALTO),
       { width: LOGO_ASEGURADORA_ANCHO },
     );
-    huecoDerecha = LOGO_ASEGURADORA_ANCHO + 16;
   }
 
-  const xTitulo = MARGEN + LOGO_ANCHO + 20;
+  // Ya no hay que esquivar los logos: el título arranca en el margen, alineado
+  // con la fecha, con las barras de sección y con todo lo demás de la hoja.
+  const yTitulo = MARGEN + FILA_LOGOS + 20;
   doc
     .fontSize(TIPO.titulo)
     .fillColor(COLORES.texto)
     .font('Helvetica')
-    .text('Constancia de Emisión', xTitulo, centrado(TIPO.titulo) + 1, {
-      width: ANCHO - LOGO_ANCHO - 20 - huecoDerecha,
-    });
+    .text('Constancia de Emisión', MARGEN, yTitulo, { width: ANCHO });
 
   doc
     .fontSize(TIPO.fecha)
     .fillColor(COLORES.suave)
-    .text(`Buenos Aires, ${fechaLarga(desde)}`, MARGEN, MARGEN + CABECERA_ALTO + 8);
+    .text(`Buenos Aires, ${fechaLarga(desde)}`, MARGEN, yTitulo + TIPO.titulo + 6);
 
-  doc.y = MARGEN + CABECERA_ALTO + 30;
+  doc.y = yTitulo + TIPO.titulo + 28;
 
   // ── secciones ────────────────────────────────────────────────────────
   const seccion = (titulo: string) => {

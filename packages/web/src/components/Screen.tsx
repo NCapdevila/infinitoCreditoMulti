@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Button } from './Button.tsx';
-import { ChevronLeftIcon, LogoInfinito } from './icons.tsx';
+import { LogoInfinito } from './icons.tsx';
 import { ID_SCROLL } from '../lib/scroll.ts';
 
 /**
@@ -56,16 +56,6 @@ interface ScreenProps {
   readonly ancho?: AnchoContenido;
   /** El logo vuelve al inicio. Sin handler, el logo no es clickeable. */
   readonly onInicio?: () => void;
-  /**
-   * Dónde se ofrece el paso atrás. Sin `onBack` no se ofrece en ningún lado.
-   *
-   * - `'header'` — sólo el chevron, arriba a la izquierda. Es lo que hace el
-   *   motor en el cotizador.
-   * - `'ambos'` — y además un botón al pie. En el formulario de contratación el
-   *   chevron queda lejos de donde está la vista, sobre todo en escritorio.
-   * - `'acciones'` — sólo el botón al pie, al lado del que avanza.
-   */
-  readonly volver?: 'header' | 'ambos' | 'acciones';
 }
 
 export function Screen({
@@ -80,11 +70,14 @@ export function Screen({
   actions,
   ancho = 'campo',
   onInicio,
-  volver = 'header',
 }: ScreenProps) {
-  const hayVuelta = onBack !== undefined;
-  const volverEnHeader = hayVuelta && volver !== 'acciones';
-  const mostrarVolver = hayVuelta && volver !== 'header';
+  /*
+    El paso atrás tiene un solo lugar: un botón al pie, al lado del que avanza.
+    Hubo un chevron arriba a la izquierda —como el del motor—, pero convivía con
+    este botón en toda la contratación: dos formas de lo mismo, y la de arriba
+    lejos de donde está la vista.
+  */
+  const mostrarVolver = onBack !== undefined;
 
   /**
    * El logo vuelve al inicio.
@@ -133,22 +126,8 @@ export function Screen({
           dimmed === true ? 'opacity-40' : ''
         }`}
       >
-        <div className="w-10">
-          {volverEnHeader && (
-            <button
-              type="button"
-              onClick={onBack}
-              aria-label="Volver al paso anterior"
-              // Blanco sobre `--color-surface` no se veía: el círculo es casi
-              // blanco. El motor lo pinta sobre #ccc, que es lo que hace legible
-              // el chevron blanco.
-              className="bg-surface-strong flex size-10 items-center justify-center rounded-full text-white"
-            >
-              <ChevronLeftIcon width={20} height={20} />
-            </button>
-          )}
-        </div>
-        <div className="flex flex-1 justify-center pr-10">
+        {/* Sin chevron a la izquierda, el logo se centra solo. */}
+        <div className="flex flex-1 justify-center">
           <button
             type="button"
             onClick={volverAlInicio}

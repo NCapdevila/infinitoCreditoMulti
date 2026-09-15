@@ -77,7 +77,6 @@ export function S12Resumen({
 
   return (
     <Screen
-      volver="ambos"
       ancho="campo"
       onBack={onBack}
       title={

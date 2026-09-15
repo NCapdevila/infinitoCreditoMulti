@@ -28,7 +28,6 @@
   --color-placeholder: #dadadc;      /*               · texto de ejemplo */
   --color-line: #a2a2a7;             /* --gray-border · borde de input */
   --color-surface: #f4f4f4;          /* --gray-light  · cards y acordeones */
-  --color-surface-strong: #cccccc;   /*               · círculo del botón de volver */
 
   /* Tipografía de producción */
   --font-sans: "Poppins", "Helvetica Neue", Helvetica, sans-serif;

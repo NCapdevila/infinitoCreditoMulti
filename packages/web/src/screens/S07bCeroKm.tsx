@@ -25,7 +25,6 @@ const REQUISITOS = ['Fecha del día', 'Firma', 'Sello'];
 export function S07bCeroKm({ nombreArchivo, onArchivo, onNext, onBack }: Props) {
   return (
     <Screen
-      volver="ambos"
       ancho="angosto"
       onBack={onBack}
       title="Si el auto es 0 KM"

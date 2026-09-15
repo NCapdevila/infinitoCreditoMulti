@@ -33,8 +33,7 @@ export function S09Checklist({ fotos, onFoto, onNext, onBack }: Props) {
   return (
     <>
       <Screen
-        volver="ambos"
-        ancho="campo"
+          ancho="campo"
         onBack={onBack}
         title="Fotos del vehículo"
         subtitle={`${fotos.length} de ${TOMAS.length} cargadas`}

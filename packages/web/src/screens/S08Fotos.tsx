@@ -15,7 +15,6 @@ interface Props {
 export function S08Fotos({ onNext, onBack }: Props) {
   return (
     <Screen
-      volver="ambos"
       ancho="angosto"
       onBack={onBack}
       title="Adjuntá las fotos del vehículo"

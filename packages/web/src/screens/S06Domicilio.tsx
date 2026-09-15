@@ -25,7 +25,6 @@ export function S06Domicilio({ valores, onChange, onNext, onBack }: Props) {
 
   return (
     <Screen
-      volver="ambos"
       ancho="formulario"
       onBack={onBack}
       title="¿Cuál es el domicilio de tu auto?"

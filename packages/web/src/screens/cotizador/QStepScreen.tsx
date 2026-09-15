@@ -73,7 +73,6 @@ export function QStepScreen({
     return (
       <Screen
         onBack={onBack}
-        volver="acciones"
         eyebrow={step.eyebrow}
         title={step.title}
         ancho="campo"
@@ -159,9 +158,6 @@ export function QStepScreen({
   return (
     <Screen
       onBack={onBack}
-      // Al pie y no en el header: el paso atrás es un botón más, al lado del que
-      // avanza, donde ya está la vista después de elegir.
-      volver="acciones"
       eyebrow={step.eyebrow}
       title={step.title}
       description={step.description}

@@ -148,14 +148,12 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
 
   // ── encabezado ───────────────────────────────────────────────────────
   /*
-   * Dos filas: las dos marcas arriba —CE Brokers a la izquierda, la aseguradora
-   * a la derecha— y el título debajo, arrancando en el margen.
+   * Dos filas. Arriba las marcas, cada una en su borde. Abajo la fecha bajo el
+   * logo de CE Brokers y el título a su derecha, los dos apoyados en la misma
+   * línea de base.
    *
-   * Antes compartían una sola banda, con el título metido entre los dos logos.
-   * Leía mal —los logos parecían colgar del título en vez de encabezar la hoja—
-   * y además el título nunca quedaba en el mismo lugar: el hueco de la izquierda
-   * depende del ancho del logo y el de la derecha de si la aseguradora tiene
-   * logo o no.
+   * Antes iba todo en una sola banda, con el título metido entre los dos logos:
+   * parecían colgar de él en vez de encabezar la hoja.
    */
   const centrado = (alto: number) => MARGEN + (FILA_LOGOS - alto) / 2;
 
@@ -174,8 +172,8 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
   }
 
   // El logo de la aseguradora va a la derecha, como en el documento original.
-  // Si es una compañía nueva y todavía no tenemos su logo, el título usa ese
-  // ancho: el nombre ya figura en el cuerpo del documento.
+  // Si es una compañía nueva y todavía no tenemos su logo, el lugar queda
+  // vacío: el nombre ya figura en el cuerpo del documento.
   const logoCia = logoDeAseguradora(poliza.aseguradora);
   if (logoCia !== undefined) {
     doc.image(
@@ -186,21 +184,38 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
     );
   }
 
-  // Ya no hay que esquivar los logos: el título arranca en el margen, alineado
-  // con la fecha, con las barras de sección y con todo lo demás de la hoja.
-  const yTitulo = MARGEN + FILA_LOGOS + 20;
+  /*
+   * Segunda fila. El título arranca donde termina la columna del logo, y la
+   * fecha queda debajo del logo, en el margen.
+   *
+   * `text(…, x, y)` ubica el texto por su borde superior, así que dos tamaños
+   * distintos puestos en la misma `y` no se apoyan en la misma línea: la chica
+   * flota. Bajarla la diferencia de ascendentes —la parte de la letra que sube
+   * desde la base, 718/1000 del cuerpo en Helvetica— las nivela.
+   */
+  const ASCENDENTE = 0.718;
+  const yFila2 = MARGEN + FILA_LOGOS + 14;
+
   doc
     .fontSize(TIPO.titulo)
     .fillColor(COLORES.texto)
     .font('Helvetica')
-    .text('Constancia de Emisión', MARGEN, yTitulo, { width: ANCHO });
+    .text('Constancia de Emisión', MARGEN + LOGO_ANCHO + 20, yFila2, {
+      width: ANCHO - LOGO_ANCHO - 20,
+    });
 
   doc
     .fontSize(TIPO.fecha)
     .fillColor(COLORES.suave)
-    .text(`Buenos Aires, ${fechaLarga(desde)}`, MARGEN, yTitulo + TIPO.titulo + 6);
+    .text(
+      `Buenos Aires, ${fechaLarga(desde)}`,
+      MARGEN,
+      yFila2 + (TIPO.titulo - TIPO.fecha) * ASCENDENTE,
+      // Sin esto, un mes largo parte la fecha en dos renglones contra el título.
+      { lineBreak: false },
+    );
 
-  doc.y = yTitulo + TIPO.titulo + 28;
+  doc.y = yFila2 + TIPO.titulo + 22;
 
   // ── secciones ────────────────────────────────────────────────────────
   const seccion = (titulo: string) => {

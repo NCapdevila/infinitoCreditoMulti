@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import PDFDocument from 'pdfkit';
 
@@ -82,9 +82,31 @@ const LOGO_ALTO = LOGO_ANCHO / 5.63;
  */
 const FILA_LOGOS = 24;
 
-/** Logos de las aseguradoras, por nombre normalizado. */
-const LOGO_ASEGURADORA_ANCHO = 96;
-const LOGO_ASEGURADORA_ALTO = LOGO_ASEGURADORA_ANCHO / (425 / 78);
+/**
+ * Los logos de las aseguradoras se escalan al mismo alto que el de CE Brokers,
+ * para que las dos marcas pesen igual en el encabezado.
+ *
+ * Por eso los PNG de `assets/aseguradoras/` van **recortados al logo**, sin
+ * aire alrededor: los originales venían todos en un lienzo de 425×78 con el
+ * logo adentro ocupando entre el 38 % y el 90 % del alto, así que escalar por
+ * el lienzo los dejaba de tamaños muy distintos entre sí.
+ *
+ * Un tope de ancho, igual, para una marca muy apaisada: con la misma altura,
+ * `mapfre` —de 8:1 contra el 5,6:1 de CE Brokers— se iba a 190 pt.
+ */
+const LOGO_ASEGURADORA_ANCHO_MAX = 150;
+
+/**
+ * Medidas de un PNG, leídas del encabezado IHDR.
+ *
+ * Hace falta el ancho para alinear el logo contra el margen derecho, y cada
+ * aseguradora tiene su proporción. Son ocho bytes en una posición fija del
+ * archivo: no justifica una dependencia.
+ */
+function medidasPng(ruta: string): { ancho: number; alto: number } {
+  const datos = readFileSync(ruta);
+  return { ancho: datos.readUInt32BE(16), alto: datos.readUInt32BE(20) };
+}
 
 const sinAcentos = (t: string) =>
   t.normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -148,9 +170,8 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
 
   // ── encabezado ───────────────────────────────────────────────────────
   /*
-   * Dos filas. Arriba las marcas, cada una en su borde. Abajo la fecha bajo el
-   * logo de CE Brokers y el título a su derecha, los dos apoyados en la misma
-   * línea de base.
+   * Dos filas. Arriba las marcas, cada una contra su margen y del mismo alto.
+   * Abajo el título centrado, con la fecha centrada debajo.
    *
    * Antes iba todo en una sola banda, con el título metido entre los dos logos:
    * parecían colgar de él en vez de encabezar la hoja.
@@ -176,12 +197,10 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
   // vacío: el nombre ya figura en el cuerpo del documento.
   const logoCia = logoDeAseguradora(poliza.aseguradora);
   if (logoCia !== undefined) {
-    doc.image(
-      logoCia,
-      MARGEN + ANCHO - LOGO_ASEGURADORA_ANCHO,
-      centrado(LOGO_ASEGURADORA_ALTO),
-      { width: LOGO_ASEGURADORA_ANCHO },
-    );
+    const medidas = medidasPng(logoCia);
+    const alto = Math.min(LOGO_ALTO, (LOGO_ASEGURADORA_ANCHO_MAX * medidas.alto) / medidas.ancho);
+    const ancho = (alto * medidas.ancho) / medidas.alto;
+    doc.image(logoCia, MARGEN + ANCHO - ancho, centrado(alto), { height: alto });
   }
 
   /*
@@ -193,29 +212,22 @@ export function generarCertificado(datos: DatosCertificado): Promise<Buffer> {
    * flota. Bajarla la diferencia de ascendentes —la parte de la letra que sube
    * desde la base, 718/1000 del cuerpo en Helvetica— las nivela.
    */
-  const ASCENDENTE = 0.718;
-  const yFila2 = MARGEN + FILA_LOGOS + 14;
-
+  const yTitulo = MARGEN + FILA_LOGOS + 16;
   doc
     .fontSize(TIPO.titulo)
     .fillColor(COLORES.texto)
     .font('Helvetica')
-    .text('Constancia de Emisión', MARGEN + LOGO_ANCHO + 20, yFila2, {
-      width: ANCHO - LOGO_ANCHO - 20,
-    });
+    .text('Constancia de Emisión', MARGEN, yTitulo, { width: ANCHO, align: 'center' });
 
   doc
     .fontSize(TIPO.fecha)
     .fillColor(COLORES.suave)
-    .text(
-      `Buenos Aires, ${fechaLarga(desde)}`,
-      MARGEN,
-      yFila2 + (TIPO.titulo - TIPO.fecha) * ASCENDENTE,
-      // Sin esto, un mes largo parte la fecha en dos renglones contra el título.
-      { lineBreak: false },
-    );
+    .text(`Buenos Aires, ${fechaLarga(desde)}`, MARGEN, yTitulo + TIPO.titulo + 5, {
+      width: ANCHO,
+      align: 'center',
+    });
 
-  doc.y = yFila2 + TIPO.titulo + 22;
+  doc.y = yTitulo + TIPO.titulo + 26;
 
   // ── secciones ────────────────────────────────────────────────────────
   const seccion = (titulo: string) => {

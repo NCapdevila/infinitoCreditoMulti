@@ -9,12 +9,18 @@
  * Con `--sin-logo` usa una aseguradora que todavía no tiene PNG en
  * `assets/aseguradoras/`, que es el otro caso que hay que mirar: el encabezado
  * tiene que verse bien igual, con el lugar del logo vacío.
+ *
+ * Con `--aseguradora mapfre` se prueba el logo de una compañía puntual. Vale la
+ * pena mirar las apaisadas —`mapfre`— y las altas —`mercantil-andina`—, que son
+ * los extremos de proporción.
  */
 import { writeFileSync } from 'node:fs';
 import { generarCertificado } from '../src/certificado.ts';
 
 const salida = process.argv[2] ?? 'constancia.pdf';
 const sinLogo = process.argv.includes('--sin-logo');
+const i = process.argv.indexOf('--aseguradora');
+const aseguradora = i !== -1 ? process.argv[i + 1] : 'Zurich';
 
 const pdf = await generarCertificado({
   asegurado: {
@@ -24,7 +30,7 @@ const pdf = await generarCertificado({
     domicilio: 'siempre viva 123 (1849) CLAYPOLE',
   },
   poliza: {
-    aseguradora: sinLogo ? 'Aseguradora Nueva S.A.' : 'Zurich',
+    aseguradora: sinLogo ? 'Aseguradora Nueva S.A.' : aseguradora,
     fechaCarga: new Date(),
   },
   vehiculo: {

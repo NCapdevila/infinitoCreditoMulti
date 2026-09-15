@@ -127,10 +127,12 @@ Para verla sin recorrer el cotizador ni mandar una solicitud:
 ```bash
 npx tsx packages/bff/scripts/previsualizar-constancia.mjs constancia.pdf
 npx tsx packages/bff/scripts/previsualizar-constancia.mjs otra.pdf --sin-logo
+npx tsx packages/bff/scripts/previsualizar-constancia.mjs m.pdf --aseguradora mapfre
 ```
 
-El segundo usa una aseguradora sin PNG: es el otro caso del encabezado que hay
-que mirar cuando se le toca el diseño.
+Al tocarle el diseño al encabezado conviene mirar los tres: con logo, sin logo
+—una compañía que todavía no tiene PNG— y alguno de los extremos de proporción,
+`mapfre` para lo apaisado y `mercantil-andina` para lo alto.
 
 El encabezado lleva las dos marcas arriba —CE Brokers a la izquierda y la
 aseguradora a la derecha, desde `packages/bff/assets/`— y el título debajo. Las
@@ -141,7 +143,13 @@ El logo de la compañía se busca por nombre normalizado, probando desde la raz�
 social completa hasta la primera palabra —así entra tanto «Zurich» como «Zurich
 Argentina Compañía de Seguros S.A.»—. **Si aparece una aseguradora nueva, basta
 con dejar su PNG en `assets/aseguradoras/` con el nombre en minúsculas y
-guiones** (`san-cristobal.png`). Si falta, la constancia sale igual sin ese
+guiones** (`san-cristobal.png`).
+
+> **El PNG va recortado al logo, sin aire alrededor.** Se escala al mismo alto
+> que el de CE Brokers para que las dos marcas pesen igual, así que el margen
+> transparente del archivo se convierte en margen en la hoja: con el lienzo de
+> 425×78 en el que venían los primeros seis, el logo adentro ocupaba entre el
+> 38 % y el 90 % del alto y cada compañía salía de un tamaño distinto. Si falta, la constancia sale igual sin ese
 logo: el nombre ya figura en el cuerpo, y es un documento que no puede dejar de
 emitirse por una imagen.
 

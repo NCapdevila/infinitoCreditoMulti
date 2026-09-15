@@ -122,10 +122,20 @@ la URL puede llamarlos. Contra eso hay dos topes, porque **CORS no alcanza** —
 
 ### Constancia en PDF
 
-El encabezado lleva el logo de CE Brokers a la izquierda y el de la aseguradora
-a la derecha, desde `packages/bff/assets/`. Las rutas se resuelven relativas al
-módulo, así que si en algún momento se compila a `dist/`, hay que copiar
-`assets/` junto al build.
+Para verla sin recorrer el cotizador ni mandar una solicitud:
+
+```bash
+npx tsx packages/bff/scripts/previsualizar-constancia.mjs constancia.pdf
+npx tsx packages/bff/scripts/previsualizar-constancia.mjs otra.pdf --sin-logo
+```
+
+El segundo usa una aseguradora sin PNG: es el otro caso del encabezado que hay
+que mirar cuando se le toca el diseño.
+
+El encabezado lleva las dos marcas arriba —CE Brokers a la izquierda y la
+aseguradora a la derecha, desde `packages/bff/assets/`— y el título debajo. Las
+rutas se resuelven relativas al módulo, así que si en algún momento se compila a
+`dist/`, hay que copiar `assets/` junto al build.
 
 El logo de la compañía se busca por nombre normalizado, probando desde la razón
 social completa hasta la primera palabra —así entra tanto «Zurich» como «Zurich

@@ -17,7 +17,7 @@ const conTls = process.env['HTTPS'] === '1';
  *
  * Esta cabecera es la que decide el embebido, y la manda quien sirve el HTML:
  * en desarrollo, Vite; en producción, el servidor estático o el CDN, que la
- * tiene que mandar igual (ver README). Dejarla acá hace que probar el iframe en
+ * tiene que mandar igual (ver `.env.example`). Dejarla acá hace que probar el iframe en
  * desarrollo se comporte como en producción en vez de descubrirlo al salir.
  */
 const sitios = (process.env['SITIOS_EMBEBIBLES'] ?? '')

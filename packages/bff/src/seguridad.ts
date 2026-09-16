@@ -8,7 +8,7 @@ import type { IncomingMessage } from 'node:http';
  *
  * - **`frame-ancestors`** (`SITIOS_EMBEBIBLES`) decide qué sitios pueden meter
  *   la app en un `<iframe>`. Es el que importa para el embebido; la cabecera la
- *   tiene que mandar además quien sirve el HTML del front (ver README).
+ *   tiene que mandar además quien sirve el HTML del front (ver `.env.example`).
  * - **CORS** (`ORIGENES_PERMITIDOS`) decide desde qué origen se puede llamar a
  *   `/api`. Ojo que **no son la misma lista**: dentro de un iframe, el `fetch`
  *   sale con el origen de la app, no con el del sitio que la embebe. Si el
@@ -24,6 +24,11 @@ import type { IncomingMessage } from 'node:http';
  * no manda `Origin` y no mira las cabeceras de respuesta. Contra eso están el
  * tope de cuerpo y el rate limit de más abajo, que es lo que evita que
  * `/api/solicitud` se use como relay de correo o para voltear el proceso.
+ *
+ * **Lo que queda abierto:** esos topes hacen el abuso caro, no imposible.
+ * Cerrarlo del todo pide que `/api/solicitud` exija una cotización viva —el `id`
+ * que ya emite el BFF, con su TTL de media hora—, de modo que para mandar un
+ * correo haya que recorrer el cotizador primero.
  */
 
 // ── orígenes ───────────────────────────────────────────────────────────

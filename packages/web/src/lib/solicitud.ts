@@ -1,6 +1,6 @@
 import type { Solicitud } from '@infinito/bff/correo';
 import { CONDICIONES_FISCALES, SEXOS, TOMAS, type Contratacion } from './contratacion.ts';
-import { comoAdjunto, esPdf } from './imagenes.ts';
+import { partirDataUrl } from './imagenes.ts';
 import { datosDeConstancia } from './certificado.ts';
 import { cabecerasDeApi } from './pase.ts';
 import { cabeceraRecaptcha } from './recaptcha.ts';
@@ -100,21 +100,18 @@ function seccionesDe(datos: Contratacion): Solicitud['secciones'] {
   ];
 }
 
-/** Las fotos ya vienen comprimidas desde la carga. */
-function adjuntosDe(datos: Contratacion): Solicitud['adjuntos'] {
-  const extension = (dataUrl: string) => (esPdf(dataUrl) ? 'pdf' : 'jpg');
+/**
+ * Las fotos, ya comprimidas desde la carga.
+ *
+ * Cada una va con la clave de su toma y los bytes, nada más: el nombre del
+ * archivo y el tipo los decide el BFF —el tipo, mirando el contenido—, así que
+ * mandarlos desde acá no serviría de nada.
+ */
+function adjuntosDe(datos: Contratacion): { clave: string; contenido: string }[] {
   return TOMAS.flatMap((toma) => {
     const foto = datos.fotos.find((f) => f.tipo === toma.tipo);
     if (foto === undefined) return [];
-    // Se translitera en vez de borrar los acentos: si no, «Cédula verde o
-    // título» llega como «c-dula-verde-o-t-tulo».
-    const nombre = toma.label
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-    return [comoAdjunto(`${nombre}.${extension(foto.previewUrl)}`, foto.previewUrl)];
+    return [{ clave: toma.tipo, contenido: partirDataUrl(foto.previewUrl).contenido }];
   });
 }
 

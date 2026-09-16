@@ -7,6 +7,7 @@ import {
   enviarSolicitud,
   type Solicitud,
 } from './correo.js';
+import { validarAdjuntos } from './adjuntos.js';
 import { Cotizaciones, type Cotizacion } from './cotizaciones.js';
 import {
   asuntoDeSolicitud,
@@ -365,9 +366,8 @@ async function solicitud(req: IncomingMessage, res: ServerResponse, origen: stri
   const correo: Solicitud = {
     asunto: asuntoDeSolicitud(cotizacion.plan, datos.vehiculo.patente),
     secciones: seccionesDeSolicitud(correoDelCliente['secciones'], cotizacion.plan),
-    adjuntos: Array.isArray(correoDelCliente['adjuntos'])
-      ? (correoDelCliente['adjuntos'] as Solicitud['adjuntos'])
-      : [],
+    // Tipo por firma de los bytes y nombre puesto acá: ver `adjuntos.ts`.
+    adjuntos: validarAdjuntos(correoDelCliente['adjuntos']),
     ...contacto,
   };
   const constancia = await generarCertificado(datos);

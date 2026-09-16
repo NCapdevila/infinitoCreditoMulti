@@ -14,14 +14,6 @@
 const LADO_MAXIMO = 1600;
 const CALIDAD = 0.7;
 
-/** Un adjunto listo para viajar en el correo. */
-export interface Adjunto {
-  readonly nombre: string;
-  readonly tipo: string;
-  /** Contenido en base64, sin el prefijo `data:`. */
-  readonly contenido: string;
-}
-
 const leerComoDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const lector = new FileReader();
@@ -110,10 +102,4 @@ export function abrirPdf(dataUrl: string): void {
   const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
   window.open(url, '_blank', 'noopener');
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
-
-/** Arma el adjunto a partir de un data URL ya comprimido. */
-export function comoAdjunto(nombre: string, dataUrl: string): Adjunto {
-  const { tipo, contenido } = partirDataUrl(dataUrl);
-  return { nombre, tipo, contenido };
 }

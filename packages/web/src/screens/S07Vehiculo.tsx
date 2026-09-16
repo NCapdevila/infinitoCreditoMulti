@@ -38,7 +38,7 @@ export function S07Vehiculo({ valores, onChange, onNext, onCeroKm, onBack }: Pro
             Siguiente
           </Button>
           <Button variant="secondary" onClick={onCeroKm}>
-            Si es cero KM, hacé click acá
+            Si es 0KM, hacé click acá
           </Button>
         </>
       }

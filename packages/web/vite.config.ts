@@ -65,6 +65,10 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
+    // El `.env` vive en la raíz, compartido con el BFF. Sin esto Vite lo busca
+    // en `packages/web` y `VITE_RECAPTCHA_SITE_KEY` nunca llega al bundle. Sólo
+    // pasan al navegador las variables `VITE_`: el resto se queda en el server.
+    envDir: RAIZ,
     plugins: [
       react(),
       tailwindcss(),

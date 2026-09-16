@@ -395,7 +395,11 @@ export function App() {
             setDescargando(true);
             setErrorDescarga(null);
             descargarConstancia(datos)
-              .catch(() => setErrorDescarga('No pudimos generar la constancia.'))
+              .catch((e: unknown) =>
+                setErrorDescarga(
+                  e instanceof Error ? e.message : 'No pudimos generar la constancia.',
+                ),
+              )
               .finally(() => setDescargando(false));
           }}
         />

@@ -1,6 +1,7 @@
 import type { DatosCertificado } from '@infinito/bff/certificado';
 import type { Contratacion } from './contratacion.ts';
 import { cabecerasDeApi } from './pase.ts';
+import { cabeceraRecaptcha } from './recaptcha.ts';
 
 /**
  * Arma la constancia a partir de lo capturado y la baja como PDF.
@@ -64,10 +65,22 @@ export function datosDeConstancia(datos: Contratacion): DatosCertificado {
 export async function descargarConstancia(datos: Contratacion): Promise<void> {
   const res = await fetch('/api/certificado', {
     method: 'POST',
-    headers: cabecerasDeApi({ 'Content-Type': 'application/json' }),
+    headers: cabecerasDeApi({
+      'Content-Type': 'application/json',
+      ...(await cabeceraRecaptcha('constancia')),
+    }),
     body: JSON.stringify(datosDeConstancia(datos)),
   });
-  if (!res.ok) throw new Error('No pudimos generar la constancia.');
+  if (!res.ok) {
+    // El BFF explica qué pasó —la sesión venció, el reCAPTCHA no validó— y eso
+    // le dice al vendedor si reintentar o recargar. Un texto fijo lo escondía.
+    const cuerpo: unknown = await res.json().catch(() => ({}));
+    const detalle =
+      typeof cuerpo === 'object' && cuerpo !== null && 'error' in cuerpo
+        ? String((cuerpo as { error: unknown }).error)
+        : 'No pudimos generar la constancia.';
+    throw new Error(detalle);
+  }
 
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);

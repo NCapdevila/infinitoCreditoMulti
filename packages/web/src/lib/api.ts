@@ -1,6 +1,7 @@
 import type { ChoiceOption, Step } from '@infinito/bff/motor/types';
 import type { Quotations, Quote } from '@infinito/bff/motor/quotations';
 import { cabecerasDeApi } from './pase.ts';
+import { cabeceraRecaptcha } from './recaptcha.ts';
 
 /**
  * Cliente del BFF.
@@ -38,10 +39,14 @@ export class ErrorDeApi extends Error {
   }
 }
 
-async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
+async function pedir<T>(
+  ruta: string,
+  init?: RequestInit,
+  cabeceras: Readonly<Record<string, string>> = {},
+): Promise<T> {
   const res = await fetch(`/api${ruta}`, {
     ...init,
-    headers: cabecerasDeApi({ 'Content-Type': 'application/json' }),
+    headers: cabecerasDeApi({ 'Content-Type': 'application/json', ...cabeceras }),
   });
 
   const cuerpo: unknown = await res.json().catch(() => ({}));
@@ -56,8 +61,9 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  /** Arranca una cotización nueva y devuelve el primer paso. */
-  crear: () => pedir<EstadoCotizacion>('/cotizaciones', { method: 'POST' }),
+  /** Arranca una cotización nueva y devuelve el primer paso. Pide reCAPTCHA. */
+  crear: async () =>
+    pedir<EstadoCotizacion>('/cotizaciones', { method: 'POST' }, await cabeceraRecaptcha('cotizar')),
 
   /** Completa el paso actual. */
   avanzar: (id: string, valores: Record<string, string>) =>

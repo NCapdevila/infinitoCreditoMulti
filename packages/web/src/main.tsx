@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 import './theme.css';
 import { App } from './App.tsx';
 import { alVolverAlInicio } from './lib/inicio.ts';
+import { cargarRecaptcha } from './lib/recaptcha.ts';
+
+// Cuanto antes empieza a mirar, mejor puntaje le da a un vendedor de verdad.
+void cargarRecaptcha();
 
 const root = document.getElementById('root');
 if (root === null) throw new Error('falta #root en index.html');

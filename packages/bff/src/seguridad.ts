@@ -37,11 +37,12 @@ import type { IncomingMessage } from 'node:http';
 /**
  * Métodos y cabeceras que la API acepta desde otro origen.
  *
- * `Authorization` lleva el pase de embebido. Sin declararla, el navegador corta
- * en el preflight cualquier llamada que la mande desde otro origen.
+ * `Authorization` lleva el pase de embebido y `X-Recaptcha` el token de
+ * reCAPTCHA. Sin declararlas, el navegador corta en el preflight cualquier
+ * llamada que las mande desde otro origen.
  */
 const METODOS = 'GET, POST, OPTIONS';
-const CABECERAS = 'Content-Type, Authorization';
+const CABECERAS = 'Content-Type, Authorization, X-Recaptcha';
 
 /** Cuánto puede cachear el navegador el preflight, en segundos. */
 const PREFLIGHT_MAX_AGE = '600';

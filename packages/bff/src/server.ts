@@ -14,6 +14,13 @@ import { MotorClient, MotorHttpError } from './motor/client.js';
 import { MotorParseError } from './motor/types.js';
 import type { Quotations } from './motor/quotations.js';
 import {
+  MENSAJE_RECHAZO,
+  configRecaptcha,
+  problemaDeConfiguracion as problemaDeRecaptcha,
+  verificarRecaptcha,
+  type Accion,
+} from './recaptcha.js';
+import {
   autorizarApi,
   emitirPase,
   esProduccion,
@@ -426,6 +433,33 @@ async function estatico(req: IncomingMessage, res: ServerResponse, pathname: str
   res.end(req.method === 'HEAD' ? undefined : archivo.contenido);
 }
 
+/**
+ * Exige un token de reCAPTCHA para `accion`.
+ *
+ * Devuelve `false` si ya contestó el rechazo. Deja una línea en el log por
+ * cada verificación, con la acción y el puntaje y sin datos de la operación:
+ * es lo que hace falta para ajustar el umbral con el tráfico real.
+ */
+async function exigirRecaptcha(
+  req: IncomingMessage,
+  res: ServerResponse,
+  accion: Accion,
+): Promise<boolean> {
+  const config = configRecaptcha();
+  // Sólo en desarrollo y sin secreto: se avisó al arrancar.
+  if (config === undefined) return true;
+
+  const resultado = await verificarRecaptcha(cabecera(req, 'x-recaptcha'), accion, config);
+  const score = resultado.score ?? '-';
+  if (resultado.valido) {
+    console.log(`[recaptcha] ${accion} · score ${score} · ok`);
+    return true;
+  }
+  console.warn(`[recaptcha] ${accion} · score ${score} · rechazado: ${resultado.motivo}`);
+  responder(res, resultado.status, { error: MENSAJE_RECHAZO });
+  return false;
+}
+
 // ── servidor ───────────────────────────────────────────────────────────
 
 /**
@@ -501,10 +535,14 @@ const servidor = createServer((req, res) => {
         }
       }
 
+      // El reCAPTCHA va después del rate limit: verificarlo es una llamada a
+      // Google, y no tiene sentido hacerla para un pedido que ya se pasó del cupo.
       if (partes[1] === 'certificado' && metodo === 'POST') {
+        if (!(await exigirRecaptcha(req, res, 'constancia'))) return;
         return await certificado(req, res);
       }
       if (partes[1] === 'solicitud' && metodo === 'POST') {
+        if (!(await exigirRecaptcha(req, res, 'solicitud'))) return;
         return await solicitud(req, res);
       }
 
@@ -517,7 +555,11 @@ const servidor = createServer((req, res) => {
       const id = partes[2];
       const accion = partes[3];
 
-      if (id === undefined && metodo === 'POST') return await crear(res, agencia);
+      if (id === undefined && metodo === 'POST') {
+        // Crear abre una sesión en el motor: es lo que un script repetiría.
+        if (!(await exigirRecaptcha(req, res, 'cotizar'))) return;
+        return await crear(res, agencia);
+      }
       if (id !== undefined && accion === 'pasos' && metodo === 'POST') {
         return await avanzar(req, res, id, agencia);
       }
@@ -571,10 +613,14 @@ setInterval(() => limpiarCupos(), 10 * 60 * 1000).unref();
 
 // Un secreto mal configurado en producción no es algo para descubrir con el
 // primer pase rechazado: el proceso no arranca.
-const problema = problemaDeConfiguracion();
-if (problema !== undefined) {
-  console.error(`[pase] ${problema}`);
-  process.exit(1);
+for (const [etiqueta, problema] of [
+  ['pase', problemaDeConfiguracion()],
+  ['recaptcha', problemaDeRecaptcha()],
+] as const) {
+  if (problema !== undefined) {
+    console.error(`[${etiqueta}] ${problema}`);
+    process.exit(1);
+  }
 }
 
 servidor.listen(PUERTO, () => {
@@ -586,6 +632,11 @@ servidor.listen(PUERTO, () => {
     const secreto = process.env['PASE_SECRETO'] ? '' : ', y los pases se firman con el secreto público de desarrollo';
     console.warn(
       `[pase] modo desarrollo (NODE_ENV no es production): se puede abrir el cotizador directo desde localhost${secreto}`,
+    );
+  }
+  if (configRecaptcha() === undefined) {
+    console.warn(
+      '[recaptcha] RECAPTCHA_SECRETO no está definida: en desarrollo se saltea la verificación',
     );
   }
   if (!hayAllowlist()) {

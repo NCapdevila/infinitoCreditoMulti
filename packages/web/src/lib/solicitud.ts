@@ -3,6 +3,7 @@ import { CONDICIONES_FISCALES, SEXOS, TOMAS, type Contratacion } from './contrat
 import { comoAdjunto, esPdf } from './imagenes.ts';
 import { datosDeConstancia } from './certificado.ts';
 import { cabecerasDeApi } from './pase.ts';
+import { cabeceraRecaptcha } from './recaptcha.ts';
 
 /**
  * Arma el correo con todo lo capturado y lo manda.
@@ -148,7 +149,10 @@ export async function enviarSolicitud(datos: Contratacion): Promise<ResultadoSol
 
   const res = await fetch('/api/solicitud', {
     method: 'POST',
-    headers: cabecerasDeApi({ 'Content-Type': 'application/json' }),
+    headers: cabecerasDeApi({
+      'Content-Type': 'application/json',
+      ...(await cabeceraRecaptcha('solicitud')),
+    }),
     body: JSON.stringify({
       certificado: datosDeConstancia(datos),
       correo: {

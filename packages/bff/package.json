@@ -26,6 +26,7 @@
   "exports": {
     "./motor/*": "./src/motor/*.ts",
     "./certificado": "./src/certificado.ts",
-    "./correo": "./src/correo.ts"
+    "./correo": "./src/correo.ts",
+    "./recaptcha": "./src/recaptcha.ts"
   }
 }

@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { generarCertificado, type DatosCertificado } from './certificado.js';
+import { generarCertificado } from './certificado.js';
 import {
   correoConfigurado,
   enviarConstanciaAlCliente,
@@ -8,6 +8,13 @@ import {
   type Solicitud,
 } from './correo.js';
 import { Cotizaciones, type Cotizacion } from './cotizaciones.js';
+import {
+  asuntoDeSolicitud,
+  contactoDelCliente,
+  datosDeEmision,
+  planDeResultados,
+  seccionesDeSolicitud,
+} from './emision.js';
 import { ErrorDeCliente, ErrorHttp } from './errores.js';
 import { directorioWeb, leerDocumento, leerEstatico, paginaDeRechazo } from './estaticos.js';
 import { MotorClient, MotorHttpError } from './motor/client.js';
@@ -133,6 +140,7 @@ const paraElFront = (id: string, c: Cotizacion) => ({
 async function crear(res: ServerResponse, origen: string): Promise<void> {
   const { session, step } = await motor.start();
   const id = randomUUID();
+  const ahora = Date.now();
   const cotizacion: Cotizacion = {
     session,
     paso: step,
@@ -140,7 +148,9 @@ async function crear(res: ServerResponse, origen: string): Promise<void> {
     cotizando: false,
     visitados: [step.id],
     origen,
-    creada: Date.now(),
+    creada: ahora,
+    usada: ahora,
+    solicitud: 'pendiente',
   };
   cotizaciones.guardar(id, cotizacion);
   responder(res, 201, paraElFront(id, cotizacion));
@@ -260,7 +270,12 @@ async function resultados(res: ServerResponse, id: string, origen: string): Prom
   responder(res, 200, quotations);
 }
 
-/** Elige un plan: cierra la etapa 2 y habilita la contratación. */
+/**
+ * Elige un plan: cierra la etapa 2 y habilita la contratación.
+ *
+ * El plan se busca en los resultados del motor y se guarda de ahí, no de lo
+ * que manda el front: es lo que después sale en la constancia y en el correo.
+ */
 async function elegir(
   req: IncomingMessage,
   res: ServerResponse,
@@ -273,36 +288,45 @@ async function elegir(
   if (typeof code !== 'string' || typeof insurance !== 'string' || typeof plan !== 'string') {
     throw new ErrorDeCliente('faltan `code`, `insurance` o `plan`');
   }
+  if (!cotizacion.cotizando) {
+    throw new ErrorDeCliente('la cotización todavía no se disparó');
+  }
+  if (cotizacion.solicitud !== 'pendiente') {
+    throw new ErrorHttp(409, 'La solicitud de esta cotización ya se envió: para otro plan, cotizá de nuevo.');
+  }
 
-  await motor.elegirPlan(cotizacion.session, { code, insurance, plan });
-  responder(res, 200, { elegido: { code, insurance, plan }, valores: cotizacion.valores });
+  const elegido = planDeResultados(await motor.quotations(cotizacion.session), {
+    code,
+    insurance,
+    plan,
+  });
+  if (elegido === undefined) {
+    throw new ErrorDeCliente('el plan elegido no está entre los resultados de la cotización');
+  }
+
+  await motor.elegirPlan(cotizacion.session, {
+    code: elegido.code,
+    insurance: elegido.compania,
+    plan: elegido.plan,
+  });
+  cotizacion.plan = elegido;
+  responder(res, 200, { elegido, valores: cotizacion.valores });
 }
 
 /**
  * Genera la constancia y la devuelve para descargar.
  *
- * No guarda nada: recibe los datos, arma el PDF y lo entrega. Es la misma
- * constancia que se adjunta al correo.
+ * Pide la cotización de la que sale: vigente, de esta agencia y con plan. La
+ * compañía, la cobertura y el vehículo cotizado salen de ahí, no del pedido.
+ * Se puede descargar las veces que haga falta.
  */
-async function certificado(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function certificado(req: IncomingMessage, res: ServerResponse, origen: string): Promise<void> {
   const cuerpo = await leerJsonOFormulario(req);
-  const datos = cuerpo as unknown as DatosCertificado;
+  const cotizacion = cotizaciones.paraEmitir(cuerpo['cotizacionId'], origen);
+  const datos = datosDeEmision(cuerpo, cotizacion);
 
-  if (
-    typeof datos.asegurado?.nombre !== 'string' ||
-    typeof datos.vehiculo?.patente !== 'string' ||
-    typeof datos.poliza?.aseguradora !== 'string'
-  ) {
-    throw new ErrorDeCliente('faltan datos para armar la constancia');
-  }
-
-  const pdf = await generarCertificado({
-    ...datos,
-    // Las fechas viajan como texto en JSON.
-    poliza: { ...datos.poliza, fechaCarga: new Date(datos.poliza.fechaCarga) },
-  });
-
-  const nombre = `constancia-${datos.vehiculo.patente || 'emision'}.pdf`;
+  const pdf = await generarCertificado(datos);
+  const nombre = `constancia-${datos.vehiculo.patente.replace(/\s+/g, '-') || 'emision'}.pdf`;
   res.writeHead(200, {
     'Content-Type': 'application/pdf',
     'Content-Length': pdf.length,
@@ -319,30 +343,49 @@ async function certificado(req: IncomingMessage, res: ServerResponse): Promise<v
  * responde 502 con el motivo para que el front pueda avisar y ofrecer la
  * descarga de la constancia.
  */
-async function solicitud(req: IncomingMessage, res: ServerResponse): Promise<void> {
+async function solicitud(req: IncomingMessage, res: ServerResponse, origen: string): Promise<void> {
   // El único endpoint con adjuntos: las fotos y la cédula viajan acá adentro.
   const cuerpo = await leerJson(req, limiteSolicitud());
-  const datos = cuerpo['certificado'] as unknown as DatosCertificado | undefined;
-  const correo = cuerpo['correo'] as unknown as Solicitud | undefined;
+  const cotizacion = cotizaciones.paraEmitir(cuerpo['cotizacionId'], origen);
 
-  if (datos === undefined || correo === undefined) {
+  const delCliente = cuerpo['correo'];
+  if (typeof cuerpo['certificado'] !== 'object' || typeof delCliente !== 'object' || delCliente === null) {
     throw new ErrorDeCliente('faltan `certificado` o `correo`');
   }
+  const correoDelCliente = delCliente as Record<string, unknown>;
+  const datos = datosDeEmision(cuerpo['certificado'], cotizacion);
+  const contacto = contactoDelCliente(correoDelCliente['emailCliente'], correoDelCliente['nombreCliente']);
+
   if (!correoConfigurado()) {
     throw new ErrorDeCliente(
       'el correo no está configurado: definí SMTP_HOST y MAIL_TO en el servidor',
     );
   }
 
-  const constancia = await generarCertificado({
-    ...datos,
-    poliza: { ...datos.poliza, fechaCarga: new Date(datos.poliza.fechaCarga) },
-  });
+  const correo: Solicitud = {
+    asunto: asuntoDeSolicitud(cotizacion.plan, datos.vehiculo.patente),
+    secciones: seccionesDeSolicitud(correoDelCliente['secciones'], cotizacion.plan),
+    adjuntos: Array.isArray(correoDelCliente['adjuntos'])
+      ? (correoDelCliente['adjuntos'] as Solicitud['adjuntos'])
+      : [],
+    ...contacto,
+  };
+  const constancia = await generarCertificado(datos);
 
-  // Primero el correo interno: es el que habilita la emisión y, sin base de
-  // datos, el único registro de la operación.
-  const resultado = await enviarSolicitud(correo, constancia);
+  // Se reserva antes de mandar, no después: dos pedidos simultáneos pasarían
+  // los dos el chequeo mientras el primero todavía está enviando.
+  cotizaciones.reservarSolicitud(cotizacion);
+  let resultado: Awaited<ReturnType<typeof enviarSolicitud>>;
+  try {
+    // Primero el correo interno: es el que habilita la emisión y, sin base de
+    // datos, el único registro de la operación.
+    resultado = await enviarSolicitud(correo, constancia);
+  } catch (error) {
+    cotizaciones.liberarSolicitud(cotizacion);
+    throw error;
+  }
   if (!resultado.enviado) {
+    cotizaciones.liberarSolicitud(cotizacion);
     responder(res, 502, {
       error: `No pudimos enviar la solicitud: ${resultado.error ?? 'error desconocido'}`,
       intentos: resultado.intentos,
@@ -350,10 +393,12 @@ async function solicitud(req: IncomingMessage, res: ServerResponse): Promise<voi
     return;
   }
 
+  cotizaciones.confirmarSolicitud(cotizacion);
+
   // Después, la constancia al comprador. Si esto falla, la solicitud ya llegó a
   // emisiones: se informa, pero no se pierde la operación.
   let constanciaAlCliente: { enviada: boolean; error?: string } = { enviada: false };
-  if (correo.emailCliente !== undefined && correo.emailCliente.includes('@')) {
+  if (correo.emailCliente !== undefined) {
     const alCliente = await enviarConstanciaAlCliente(
       correo.emailCliente,
       correo.nombreCliente,
@@ -539,11 +584,11 @@ const servidor = createServer((req, res) => {
       // Google, y no tiene sentido hacerla para un pedido que ya se pasó del cupo.
       if (partes[1] === 'certificado' && metodo === 'POST') {
         if (!(await exigirRecaptcha(req, res, 'constancia'))) return;
-        return await certificado(req, res);
+        return await certificado(req, res, agencia);
       }
       if (partes[1] === 'solicitud' && metodo === 'POST') {
         if (!(await exigirRecaptcha(req, res, 'solicitud'))) return;
-        return await solicitud(req, res);
+        return await solicitud(req, res, agencia);
       }
 
       // /api/cotizaciones[/:id[/accion]]

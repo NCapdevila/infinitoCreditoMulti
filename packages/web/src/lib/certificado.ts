@@ -62,14 +62,19 @@ export function datosDeConstancia(datos: Contratacion): DatosCertificado {
  * El object URL se libera con demora deliberada — soltarlo en el mismo tick
  * cancela la descarga, porque el navegador todavía no terminó de leer el blob.
  */
-export async function descargarConstancia(datos: Contratacion): Promise<void> {
+export async function descargarConstancia(
+  datos: Contratacion,
+  cotizacionId: string | undefined,
+): Promise<void> {
   const res = await fetch('/api/certificado', {
     method: 'POST',
     headers: cabecerasDeApi({
       'Content-Type': 'application/json',
       ...(await cabeceraRecaptcha('constancia')),
     }),
-    body: JSON.stringify(datosDeConstancia(datos)),
+    // Sin cotización con plan elegido el BFF no arma la constancia: la compañía
+    // y la cobertura salen de ahí, no de estos datos.
+    body: JSON.stringify({ cotizacionId, ...datosDeConstancia(datos) }),
   });
   if (!res.ok) {
     // El BFF explica qué pasó —la sesión venció, el reCAPTCHA no validó— y eso

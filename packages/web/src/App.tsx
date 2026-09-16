@@ -359,7 +359,7 @@ export function App() {
             onConfirmar={() => {
               setEnviando(true);
               setErrorEnvio(null);
-              enviarSolicitud(datos)
+              enviarSolicitud(datos, cotizacion.estado?.id)
                 .then((r) => {
                   setReferencia(r.referencia ?? null);
                   setConstanciaAlCliente(r.constanciaAlCliente);
@@ -394,7 +394,7 @@ export function App() {
           onDescargar={() => {
             setDescargando(true);
             setErrorDescarga(null);
-            descargarConstancia(datos)
+            descargarConstancia(datos, cotizacion.estado?.id)
               .catch((e: unknown) =>
                 setErrorDescarga(
                   e instanceof Error ? e.message : 'No pudimos generar la constancia.',

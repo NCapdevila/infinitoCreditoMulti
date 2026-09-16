@@ -2,17 +2,26 @@
  * Recorre una cotización completa contra el motor real, a través del BFF.
  *
  *   npm run dev            # en otra terminal
- *   node scripts/e2e.mjs
+ *   npx tsx --env-file-if-exists=../../.env scripts/e2e.mjs
+ *
+ * Corre con `tsx` para firmar el pase con el mismo secreto que el BFF: la API no
+ * acepta nada sin él. Contra un BFF con RECAPTCHA_SECRETO no pasa de crear la
+ * cotización, y es a propósito: un script no consigue un token de reCAPTCHA.
  *
  * Genera una cotización de verdad en el motor: no es un test automático, es la
  * verificación de que la traducción aguanta el flujo entero.
  */
+import { emitirPase, secretoDelPase } from '../src/pase.ts';
+
 const BFF = process.env.BFF_URL ?? 'http://localhost:5181';
+
+// El origen de la app en desarrollo: en modo desarrollo el BFF acepta localhost.
+const PASE = emitirPase('http://localhost:5180', secretoDelPase());
 
 const pedir = async (ruta, init) => {
   const res = await fetch(`${BFF}${ruta}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { 'Content-Type': 'application/json', Authorization: `Pase ${PASE}`, ...init?.headers },
   });
   const cuerpo = await res.json();
   if (!res.ok) throw new Error(`${res.status} ${ruta}: ${JSON.stringify(cuerpo)}`);
@@ -112,3 +121,5 @@ const elegido = await pedir(`/api/cotizaciones/${id}/elegir`, {
 });
 console.log('  elegido:', JSON.stringify(elegido.elegido));
 console.log('  datos para la contratación:', JSON.stringify(elegido.valores));
+// Con este id se puede pedir la constancia a mano: el BFF la exige.
+console.log('  cotización:', id);

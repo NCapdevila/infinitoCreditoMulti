@@ -19,7 +19,7 @@ const etiqueta = (opciones: readonly { value: string; label: string }[], value: 
 const oGuion = (valor: string) => (valor.trim() === '' ? '—' : valor);
 
 function seccionesDe(datos: Contratacion): Solicitud['secciones'] {
-  const { agencia, asegurado, domicilio, vehiculo, cobertura, medioDePago, fotos } = datos;
+  const { agencia, asegurado, domicilio, vehiculo, medioDePago, fotos } = datos;
   const esJuridica = asegurado.tipoPersona === 'JURIDICA';
 
   const pago: (readonly [string, string])[] =
@@ -40,18 +40,9 @@ function seccionesDe(datos: Contratacion): Solicitud['secciones'] {
           ['Tipo de cuenta', oGuion(medioDePago.tipoCuenta)],
         ];
 
+  // La sección «Cobertura elegida» no va: la arma el BFF desde el plan que
+  // quedó guardado en la cotización, y descarta una que venga de acá.
   return [
-    {
-      titulo: 'Cobertura elegida',
-      filas: [
-        ['Compañía', cobertura.compania],
-        ['Cobertura', `[${cobertura.code}] ${cobertura.plan}`],
-        ['Costo mensual', cobertura.costoMensual],
-        ...(cobertura.sumaAsegurada !== undefined
-          ? ([['Suma asegurada', cobertura.sumaAsegurada]] as const)
-          : []),
-      ],
-    },
     {
       titulo: 'Asegurado',
       filas: [
@@ -135,11 +126,16 @@ export interface ResultadoSolicitud {
   readonly constanciaAlCliente?: { readonly enviada: boolean; readonly error?: string };
 }
 
-/** Manda la solicitud. Lanza si el servidor no pudo enviarla. */
-export async function enviarSolicitud(datos: Contratacion): Promise<ResultadoSolicitud> {
-  const patente = datos.vehiculo.esCeroKm ? '0 KM' : datos.vehiculo.patente;
-  const asunto = `Solicitud de emisión · ${datos.cobertura.compania} · ${patente}`;
-
+/**
+ * Manda la solicitud. Lanza si el servidor no pudo enviarla.
+ *
+ * Va con el id de la cotización: el BFF sólo acepta una por cotización, y de
+ * ahí toma la compañía, la cobertura y el asunto del correo.
+ */
+export async function enviarSolicitud(
+  datos: Contratacion,
+  cotizacionId: string | undefined,
+): Promise<ResultadoSolicitud> {
   // El comprador recibe su constancia en el correo que dejó al cotizar.
   const emailCliente = datos.asegurado.email !== '' ? datos.asegurado.email : datos.contacto.email;
   const nombreCliente =
@@ -154,9 +150,9 @@ export async function enviarSolicitud(datos: Contratacion): Promise<ResultadoSol
       ...(await cabeceraRecaptcha('solicitud')),
     }),
     body: JSON.stringify({
+      cotizacionId,
       certificado: datosDeConstancia(datos),
       correo: {
-        asunto,
         secciones: seccionesDe(datos),
         adjuntos: adjuntosDe(datos),
         emailCliente,

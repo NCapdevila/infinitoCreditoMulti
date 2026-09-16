@@ -182,7 +182,15 @@ describe('quién puede usar la API', () => {
 
 describe('una cotización es de la agencia que la creó', () => {
   const cotizacion = (origen: string): Cotizacion =>
-    ({ origen, creada: AHORA, valores: {}, cotizando: false, visitados: [] }) as unknown as Cotizacion;
+    ({
+      origen,
+      creada: Date.now(),
+      usada: Date.now(),
+      solicitud: 'pendiente',
+      valores: {},
+      cotizando: false,
+      visitados: [],
+    }) as unknown as Cotizacion;
 
   it('se opera con un pase del mismo origen', () => {
     const almacen = new Cotizaciones();

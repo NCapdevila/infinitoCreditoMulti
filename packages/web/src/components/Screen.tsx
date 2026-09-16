@@ -100,13 +100,18 @@ export function Screen({
     <div className="mx-auto flex w-full flex-col gap-3 md:max-w-(--w-formulario) md:flex-row md:justify-center md:gap-4 [&>*]:md:max-w-(--w-boton)">
       {actions}
       {/*
-        «Volver» va siempre último, después de todas las acciones de la pantalla:
-        a la derecha en escritorio, donde la botonera es una fila, y abajo de
-        todo en mobile, donde se apila. Ninguna pantalla lo escribe a mano —lo
-        pone sólo este componente—, y eso es lo que garantiza el orden.
+        «Volver» va siempre a la izquierda de todas las acciones de la pantalla.
+
+        En el DOM va último y lo adelanta `md:order-first`, que sólo actúa en
+        escritorio, donde la botonera es una fila. En mobile los botones se
+        apilan y ahí «primero» sería arriba de todo: el que avanza tiene que
+        quedar justo debajo del contenido, así que «Volver» se queda abajo.
+
+        Ninguna pantalla lo escribe a mano —lo pone sólo este componente—, y
+        eso es lo que garantiza el orden en todas.
       */}
       {mostrarVolver && (
-        <Button variant="secondary" onClick={onBack}>
+        <Button variant="secondary" onClick={onBack} className="md:order-first">
           Volver
         </Button>
       )}

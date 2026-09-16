@@ -79,6 +79,39 @@ export async function comprimirImagen(file: File): Promise<string> {
   }
 }
 
+/**
+ * La toma es un PDF, no una foto.
+ *
+ * La cédula verde suele llegar escaneada. `comprimirImagen` la deja tal cual,
+ * así que el data URL conserva su tipo y alcanza con mirarlo. Importa porque un
+ * `<img>` no sabe dibujar un PDF: muestra el ícono de imagen rota.
+ */
+export function esPdf(dataUrl: string): boolean {
+  return dataUrl.startsWith('data:application/pdf');
+}
+
+/**
+ * Abre un PDF cargado en el visor del dispositivo, en otra pestaña.
+ *
+ * Todo es sincrónico a propósito: `window.open` tiene que correr dentro del
+ * mismo tick del toque, o Safari lo toma por un pop-up y lo bloquea. Por eso el
+ * base64 se decodifica a mano en vez de con `fetch(dataUrl)`, que es asincrónico.
+ *
+ * Va por un object URL y no por el data URL directo porque Chrome no deja abrir
+ * un `data:` en una pestaña nueva. Se libera con demora, igual que la constancia:
+ * soltarlo en el mismo tick corta la carga.
+ */
+export function abrirPdf(dataUrl: string): void {
+  const { contenido } = partirDataUrl(dataUrl);
+  const binario = atob(contenido);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i += 1) bytes[i] = binario.charCodeAt(i);
+
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  window.open(url, '_blank', 'noopener');
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 /** Arma el adjunto a partir de un data URL ya comprimido. */
 export function comoAdjunto(nombre: string, dataUrl: string): Adjunto {
   const { tipo, contenido } = partirDataUrl(dataUrl);

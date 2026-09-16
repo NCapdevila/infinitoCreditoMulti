@@ -1,6 +1,6 @@
 import type { Solicitud } from '@infinito/bff/correo';
 import { CONDICIONES_FISCALES, SEXOS, TOMAS, type Contratacion } from './contratacion.ts';
-import { comoAdjunto } from './imagenes.ts';
+import { comoAdjunto, esPdf } from './imagenes.ts';
 import { datosDeConstancia } from './certificado.ts';
 
 /**
@@ -109,7 +109,7 @@ function seccionesDe(datos: Contratacion): Solicitud['secciones'] {
 
 /** Las fotos ya vienen comprimidas desde la carga. */
 function adjuntosDe(datos: Contratacion): Solicitud['adjuntos'] {
-  const extension = (dataUrl: string) => (dataUrl.includes('application/pdf') ? 'pdf' : 'jpg');
+  const extension = (dataUrl: string) => (esPdf(dataUrl) ? 'pdf' : 'jpg');
   return TOMAS.flatMap((toma) => {
     const foto = datos.fotos.find((f) => f.tipo === toma.tipo);
     if (foto === undefined) return [];

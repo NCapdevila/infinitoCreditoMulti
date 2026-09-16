@@ -99,6 +99,12 @@ export function Screen({
   const botonera = (actions !== undefined || mostrarVolver) && (
     <div className="mx-auto flex w-full flex-col gap-3 md:max-w-(--w-formulario) md:flex-row md:justify-center md:gap-4 [&>*]:md:max-w-(--w-boton)">
       {actions}
+      {/*
+        «Volver» va siempre último, después de todas las acciones de la pantalla:
+        a la derecha en escritorio, donde la botonera es una fila, y abajo de
+        todo en mobile, donde se apila. Ninguna pantalla lo escribe a mano —lo
+        pone sólo este componente—, y eso es lo que garantiza el orden.
+      */}
       {mostrarVolver && (
         <Button variant="secondary" onClick={onBack}>
           Volver

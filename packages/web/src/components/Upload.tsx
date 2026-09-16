@@ -1,5 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { ARCHIVO } from '../lib/contratacion.ts';
+import { esPdf } from '../lib/imagenes.ts';
 import { CheckCircleIcon, ClipIcon, DocumentIcon } from './icons.tsx';
 
 /**
@@ -176,14 +177,19 @@ export function FilaToma({ label, tip, previewUrl, cargada, onClick }: FilaTomaP
       onClick={onClick}
       className="rounded-field border-line/60 flex w-full items-center gap-3 border p-2.5 text-left"
     >
-      <span className="bg-surface size-12 shrink-0 overflow-hidden rounded-md">
-        {previewUrl !== undefined && (
-          <img
-            src={previewUrl}
-            alt=""
-            className={`size-full object-cover ${cargada ? '' : 'opacity-45'}`}
-          />
-        )}
+      <span className="bg-surface text-muted flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md">
+        {previewUrl !== undefined &&
+          // La fila entera ya es un botón —abre la carga—, así que acá el PDF no
+          // se abre: sólo se distingue de una foto. Se revisa en S10.
+          (esPdf(previewUrl) ? (
+            <DocumentIcon width={24} height={24} />
+          ) : (
+            <img
+              src={previewUrl}
+              alt=""
+              className={`size-full object-cover ${cargada ? '' : 'opacity-45'}`}
+            />
+          ))}
       </span>
       <span className="text-ink flex-1 text-sm">
         {label}

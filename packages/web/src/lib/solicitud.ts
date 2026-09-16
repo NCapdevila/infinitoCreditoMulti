@@ -2,6 +2,7 @@ import type { Solicitud } from '@infinito/bff/correo';
 import { CONDICIONES_FISCALES, SEXOS, TOMAS, type Contratacion } from './contratacion.ts';
 import { comoAdjunto, esPdf } from './imagenes.ts';
 import { datosDeConstancia } from './certificado.ts';
+import { cabecerasDeApi } from './pase.ts';
 
 /**
  * Arma el correo con todo lo capturado y lo manda.
@@ -147,7 +148,7 @@ export async function enviarSolicitud(datos: Contratacion): Promise<ResultadoSol
 
   const res = await fetch('/api/solicitud', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: cabecerasDeApi({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       certificado: datosDeConstancia(datos),
       correo: {

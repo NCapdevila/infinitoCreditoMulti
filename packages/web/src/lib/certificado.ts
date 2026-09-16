@@ -1,5 +1,6 @@
 import type { DatosCertificado } from '@infinito/bff/certificado';
 import type { Contratacion } from './contratacion.ts';
+import { cabecerasDeApi } from './pase.ts';
 
 /**
  * Arma la constancia a partir de lo capturado y la baja como PDF.
@@ -63,7 +64,7 @@ export function datosDeConstancia(datos: Contratacion): DatosCertificado {
 export async function descargarConstancia(datos: Contratacion): Promise<void> {
   const res = await fetch('/api/certificado', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: cabecerasDeApi({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(datosDeConstancia(datos)),
   });
   if (!res.ok) throw new Error('No pudimos generar la constancia.');

@@ -7,9 +7,21 @@ import {
   enviarSolicitud,
   type Solicitud,
 } from './correo.js';
+import { Cotizaciones, type Cotizacion } from './cotizaciones.js';
+import { ErrorDeCliente, ErrorHttp } from './errores.js';
+import { directorioWeb, leerDocumento, leerEstatico, paginaDeRechazo } from './estaticos.js';
 import { MotorClient, MotorHttpError } from './motor/client.js';
-import { MotorParseError, type MotorSession, type Step } from './motor/types.js';
+import { MotorParseError } from './motor/types.js';
 import type { Quotations } from './motor/quotations.js';
+import {
+  autorizarApi,
+  emitirPase,
+  esProduccion,
+  evaluarDocumento,
+  inyectarPase,
+  problemaDeConfiguracion,
+  secretoDelPase,
+} from './pase.js';
 import {
   ErrorDemasiadoGrande,
   LIMITE_JSON,
@@ -27,15 +39,14 @@ import {
 } from './seguridad.js';
 
 /**
- * API del cotizador.
+ * API del cotizador, y en producción también el front.
  *
  * Traduce el motor htmx a JSON. El front nunca ve HTML, ni el token de sesión,
  * ni el CSRF: eso queda de este lado, que además es lo correcto — el CSRF rota
  * en cada respuesta y mandarlo al browser sólo daría oportunidad de perderlo.
  *
- * Las cotizaciones viven en memoria. Alcanza para desarrollo y para un único
- * proceso; persistirlas es lo que pide el borrador del wizard (spec 7.10) y es
- * el próximo paso natural.
+ * Todo `/api` exige el pase de embebido que emite este mismo proceso al servir
+ * el HTML: ver `pase.ts`.
  */
 
 const PUERTO = Number.parseInt(process.env['PORT'] ?? '5181', 10);
@@ -45,35 +56,8 @@ const motor = new MotorClient({
   uuid: process.env['MOTOR_UUID'] ?? '994b4085-999d-4301-9531-607ff61fca42',
 });
 
-interface Cotizacion {
-  session: MotorSession;
-  paso: Step;
-  /** Lo que el usuario fue eligiendo, para poder rearmar la contratación. */
-  valores: Record<string, string>;
-  /** El motor ya está cotizando: se piden resultados, no pasos. */
-  cotizando: boolean;
-  /**
-   * Los pasos por los que ya pasó esta cotización, en orden.
-   *
-   * Es lo que hace posible el botón de volver. El motor lo resuelve con
-   * `history.back()` del navegador, que no le sirve a un front que es una sola
-   * página; acá el camino recorrido es del servidor, que es el único que puede
-   * autorizar un paso atrás sin que el front invente ids.
-   */
-  visitados: string[];
-  creada: number;
-}
-
-const cotizaciones = new Map<string, Cotizacion>();
-
-/** Una cotización sin tocar durante media hora ya no le sirve a nadie. */
-const TTL_MS = 30 * 60 * 1000;
-setInterval(() => {
-  const limite = Date.now() - TTL_MS;
-  for (const [id, c] of cotizaciones) {
-    if (c.creada < limite) cotizaciones.delete(id);
-  }
-}, 5 * 60 * 1000).unref();
+const cotizaciones = new Cotizaciones();
+setInterval(() => cotizaciones.limpiar(), 5 * 60 * 1000).unref();
 
 // ── helpers HTTP ───────────────────────────────────────────────────────
 
@@ -128,16 +112,6 @@ async function leerJsonOFormulario(req: IncomingMessage): Promise<Record<string,
   }
 }
 
-class ErrorDeCliente extends Error {}
-
-function buscarCotizacion(id: string | undefined): Cotizacion {
-  const cotizacion = id === undefined ? undefined : cotizaciones.get(id);
-  if (cotizacion === undefined) {
-    throw new ErrorDeCliente('la cotización no existe o expiró');
-  }
-  return cotizacion;
-}
-
 /** Sólo lo que el front necesita: nada de sesión ni de CSRF. */
 const paraElFront = (id: string, c: Cotizacion) => ({
   id,
@@ -149,18 +123,20 @@ const paraElFront = (id: string, c: Cotizacion) => ({
 
 // ── rutas ──────────────────────────────────────────────────────────────
 
-async function crear(res: ServerResponse): Promise<void> {
+async function crear(res: ServerResponse, origen: string): Promise<void> {
   const { session, step } = await motor.start();
   const id = randomUUID();
-  cotizaciones.set(id, {
+  const cotizacion: Cotizacion = {
     session,
     paso: step,
     valores: {},
     cotizando: false,
     visitados: [step.id],
+    origen,
     creada: Date.now(),
-  });
-  responder(res, 201, paraElFront(id, cotizaciones.get(id)!));
+  };
+  cotizaciones.guardar(id, cotizacion);
+  responder(res, 201, paraElFront(id, cotizacion));
 }
 
 /**
@@ -169,8 +145,13 @@ async function crear(res: ServerResponse): Promise<void> {
  * Si el motor contesta con la pantalla de espera, ya tiene todo: se dispara la
  * cotización y a partir de ahí el front pide resultados.
  */
-async function avanzar(req: IncomingMessage, res: ServerResponse, id: string): Promise<void> {
-  const cotizacion = buscarCotizacion(id);
+async function avanzar(
+  req: IncomingMessage,
+  res: ServerResponse,
+  id: string,
+  origen: string,
+): Promise<void> {
+  const cotizacion = cotizaciones.buscar(id, origen);
   const cuerpo = await leerJson(req);
   const valores = cuerpo['valores'];
   if (typeof valores !== 'object' || valores === null) {
@@ -210,8 +191,13 @@ async function avanzar(req: IncomingMessage, res: ServerResponse, id: string): P
  * Toma una salida alternativa del paso actual («Cotizar sin patente», «Otra
  * marca»): trae otro paso sin completar el vigente.
  */
-async function ir(req: IncomingMessage, res: ServerResponse, id: string): Promise<void> {
-  const cotizacion = buscarCotizacion(id);
+async function ir(
+  req: IncomingMessage,
+  res: ServerResponse,
+  id: string,
+  origen: string,
+): Promise<void> {
+  const cotizacion = cotizaciones.buscar(id, origen);
   const cuerpo = await leerJson(req);
   const destino = cuerpo['step'];
   if (typeof destino !== 'string') throw new ErrorDeCliente('falta `step`');
@@ -237,8 +223,13 @@ async function ir(req: IncomingMessage, res: ServerResponse, id: string): Promis
 }
 
 /** Trae la lista de un paso con buscador (modelos, versiones, localidades…). */
-async function opciones(res: ServerResponse, id: string, search: string): Promise<void> {
-  const cotizacion = buscarCotizacion(id);
+async function opciones(
+  res: ServerResponse,
+  id: string,
+  origen: string,
+  search: string,
+): Promise<void> {
+  const cotizacion = cotizaciones.buscar(id, origen);
   const paso = cotizacion.paso;
   if (paso.kind !== 'choice' || paso.optionsSource === undefined) {
     throw new ErrorDeCliente('el paso actual no pide opciones a un catálogo');
@@ -253,8 +244,8 @@ async function opciones(res: ServerResponse, id: string, search: string): Promis
  * El front pollea esto igual que el multi: el motor nunca avisa que terminó,
  * así que cada respuesta trae lo que haya hasta el momento.
  */
-async function resultados(res: ServerResponse, id: string): Promise<void> {
-  const cotizacion = buscarCotizacion(id);
+async function resultados(res: ServerResponse, id: string, origen: string): Promise<void> {
+  const cotizacion = cotizaciones.buscar(id, origen);
   if (!cotizacion.cotizando) {
     throw new ErrorDeCliente('la cotización todavía no se disparó');
   }
@@ -263,8 +254,13 @@ async function resultados(res: ServerResponse, id: string): Promise<void> {
 }
 
 /** Elige un plan: cierra la etapa 2 y habilita la contratación. */
-async function elegir(req: IncomingMessage, res: ServerResponse, id: string): Promise<void> {
-  const cotizacion = buscarCotizacion(id);
+async function elegir(
+  req: IncomingMessage,
+  res: ServerResponse,
+  id: string,
+  origen: string,
+): Promise<void> {
+  const cotizacion = cotizaciones.buscar(id, origen);
   const cuerpo = await leerJson(req);
   const { code, insurance, plan } = cuerpo;
   if (typeof code !== 'string' || typeof insurance !== 'string' || typeof plan !== 'string') {
@@ -370,6 +366,66 @@ async function solicitud(req: IncomingMessage, res: ServerResponse): Promise<voi
   });
 }
 
+// ── el front ───────────────────────────────────────────────────────────
+
+const cabecera = (req: IncomingMessage, nombre: string) => {
+  const valor = req.headers[nombre];
+  return Array.isArray(valor) ? valor[0] : valor;
+};
+
+/**
+ * El HTML del cotizador, con su pase.
+ *
+ * `no-store` porque cada copia lleva un pase distinto: un caché intermedio que
+ * la guardara le daría a todo el mundo el pase de la primera agencia.
+ */
+async function documento(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const veredicto = evaluarDocumento({
+    destino: cabecera(req, 'sec-fetch-dest'),
+    referer: cabecera(req, 'referer'),
+    host: cabecera(req, 'host'),
+  });
+  if (!veredicto.permitido) {
+    console.warn(`[pase] ${veredicto.motivo}`);
+    const html = paginaDeRechazo();
+    res.writeHead(403, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': Buffer.byteLength(html),
+      'Cache-Control': 'no-store',
+    });
+    res.end(html);
+    return;
+  }
+
+  const html = await leerDocumento(directorioWeb());
+  if (html === undefined) {
+    responder(res, 503, { error: 'el front no está compilado: correr `npm run build`' });
+    return;
+  }
+
+  const conPase = inyectarPase(html, emitirPase(veredicto.origen, secretoDelPase()));
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Content-Length': Buffer.byteLength(conPase),
+    'Cache-Control': 'no-store',
+  });
+  res.end(conPase);
+}
+
+async function estatico(req: IncomingMessage, res: ServerResponse, pathname: string): Promise<void> {
+  const archivo = await leerEstatico(directorioWeb(), pathname);
+  if (archivo === undefined) {
+    responder(res, 404, { error: 'ruta desconocida' });
+    return;
+  }
+  res.writeHead(200, {
+    'Content-Type': archivo.tipo,
+    'Content-Length': archivo.contenido.length,
+    'Cache-Control': archivo.cache,
+  });
+  res.end(req.method === 'HEAD' ? undefined : archivo.contenido);
+}
+
 // ── servidor ───────────────────────────────────────────────────────────
 
 /**
@@ -411,9 +467,27 @@ const servidor = createServer((req, res) => {
       }
 
       if (partes[0] !== 'api') {
-        responder(res, 404, { error: 'ruta desconocida' });
+        if (metodo !== 'GET' && metodo !== 'HEAD') {
+          responder(res, 405, { error: 'método no permitido' });
+          return;
+        }
+        if (url.pathname === '/' || url.pathname === '/index.html') {
+          return await documento(req, res);
+        }
+        return await estatico(req, res, url.pathname);
+      }
+
+      // Todo `/api` pide el pase. Va antes que el rate limit: un pedido sin
+      // pase no tiene por qué gastarle el cupo a nadie.
+      const autorizacion = autorizarApi(cabecera(req, 'authorization'), secretoDelPase());
+      if (!autorizacion.autorizado) {
+        console.warn(`[pase] ${autorizacion.motivo} · ${metodo} ${url.pathname}`);
+        responder(res, 401, {
+          error: 'La sesión del cotizador venció o no es válida. Recargá la página.',
+        });
         return;
       }
+      const agencia = autorizacion.origen;
 
       if (partes[1] !== undefined && CAROS.has(partes[1]) && metodo === 'POST') {
         const cupo = consumirCupo(`${partes[1]}:${ipDe(req)}`);
@@ -443,27 +517,27 @@ const servidor = createServer((req, res) => {
       const id = partes[2];
       const accion = partes[3];
 
-      if (id === undefined && metodo === 'POST') return await crear(res);
+      if (id === undefined && metodo === 'POST') return await crear(res, agencia);
       if (id !== undefined && accion === 'pasos' && metodo === 'POST') {
-        return await avanzar(req, res, id);
+        return await avanzar(req, res, id, agencia);
       }
       if (id !== undefined && accion === 'ir' && metodo === 'POST') {
-        return await ir(req, res, id);
+        return await ir(req, res, id, agencia);
       }
       if (id !== undefined && accion === 'opciones' && metodo === 'GET') {
-        return await opciones(res, id, url.searchParams.get('search') ?? '');
+        return await opciones(res, id, agencia, url.searchParams.get('search') ?? '');
       }
       if (id !== undefined && accion === 'resultados' && metodo === 'GET') {
-        return await resultados(res, id);
+        return await resultados(res, id, agencia);
       }
       if (id !== undefined && accion === 'elegir' && metodo === 'POST') {
-        return await elegir(req, res, id);
+        return await elegir(req, res, id, agencia);
       }
 
       responder(res, 404, { error: 'ruta desconocida' });
     } catch (error) {
-      if (error instanceof ErrorDeCliente) {
-        responder(res, 400, { error: error.message });
+      if (error instanceof ErrorHttp) {
+        responder(res, error.status, { error: error.message });
         return;
       }
       if (error instanceof ErrorDemasiadoGrande) {
@@ -495,11 +569,25 @@ const servidor = createServer((req, res) => {
 /** Las ventanas vencidas del rate limit no le sirven a nadie. */
 setInterval(() => limpiarCupos(), 10 * 60 * 1000).unref();
 
+// Un secreto mal configurado en producción no es algo para descubrir con el
+// primer pase rechazado: el proceso no arranca.
+const problema = problemaDeConfiguracion();
+if (problema !== undefined) {
+  console.error(`[pase] ${problema}`);
+  process.exit(1);
+}
+
 servidor.listen(PUERTO, () => {
   console.log(`BFF escuchando en http://localhost:${PUERTO}`);
   console.log(`motor: ${process.env['MOTOR_URL'] ?? 'https://infinito.foxia.ar'}`);
   console.log(`orígenes permitidos: ${origenesPermitidos().join(', ')}`);
   console.log(`sitios que pueden embeber: ${sitiosEmbebibles().join(', ') || 'ninguno'}`);
+  if (!esProduccion()) {
+    const secreto = process.env['PASE_SECRETO'] ? '' : ', y los pases se firman con el secreto público de desarrollo';
+    console.warn(
+      `[pase] modo desarrollo (NODE_ENV no es production): se puede abrir el cotizador directo desde localhost${secreto}`,
+    );
+  }
   if (!hayAllowlist()) {
     console.warn(
       '[seguridad] SITIOS_EMBEBIBLES no está definida: ningún sitio externo puede ' +

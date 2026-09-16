@@ -1,5 +1,6 @@
 import type { ChoiceOption, Step } from '@infinito/bff/motor/types';
 import type { Quotations, Quote } from '@infinito/bff/motor/quotations';
+import { cabecerasDeApi } from './pase.ts';
 
 /**
  * Cliente del BFF.
@@ -40,7 +41,7 @@ export class ErrorDeApi extends Error {
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${ruta}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: cabecerasDeApi({ 'Content-Type': 'application/json' }),
   });
 
   const cuerpo: unknown = await res.json().catch(() => ({}));

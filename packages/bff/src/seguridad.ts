@@ -7,8 +7,9 @@ import type { IncomingMessage } from 'node:http';
  * distintos y conviene no confundirlos:
  *
  * - **`frame-ancestors`** (`SITIOS_EMBEBIBLES`) decide qué sitios pueden meter
- *   la app en un `<iframe>`. Es el que importa para el embebido; la cabecera la
- *   tiene que mandar además quien sirve el HTML del front (ver `.env.example`).
+ *   la app en un `<iframe>`. Es el que importa para el embebido. En producción
+ *   el HTML también lo sirve este proceso, así que la cabecera sale de acá; con
+ *   la misma lista se decide a quién darle un pase (ver `pase.ts`).
  * - **CORS** (`ORIGENES_PERMITIDOS`) decide desde qué origen se puede llamar a
  *   `/api`. Ojo que **no son la misma lista**: dentro de un iframe, el `fetch`
  *   sale con el origen de la app, no con el del sitio que la embebe. Si el
@@ -33,9 +34,14 @@ import type { IncomingMessage } from 'node:http';
 
 // ── orígenes ───────────────────────────────────────────────────────────
 
-/** Métodos y cabeceras que la API acepta desde otro origen. */
+/**
+ * Métodos y cabeceras que la API acepta desde otro origen.
+ *
+ * `Authorization` lleva el pase de embebido. Sin declararla, el navegador corta
+ * en el preflight cualquier llamada que la mande desde otro origen.
+ */
 const METODOS = 'GET, POST, OPTIONS';
-const CABECERAS = 'Content-Type';
+const CABECERAS = 'Content-Type, Authorization';
 
 /** Cuánto puede cachear el navegador el preflight, en segundos. */
 const PREFLIGHT_MAX_AGE = '600';
@@ -160,9 +166,9 @@ export function evaluarOrigen(origen: string | undefined, host?: string): Veredi
 /**
  * Cabeceras que van en toda respuesta.
  *
- * `frame-ancestors` acá cubre lo que sirve este proceso —la constancia en PDF,
- * que también se puede embeber—. El HTML del front lo sirve otro, y ese también
- * la tiene que mandar.
+ * `frame-ancestors` cubre todo lo que sirve este proceso: el HTML del front, la
+ * constancia en PDF —que también se puede embeber— y el resto. En desarrollo el
+ * HTML lo sirve Vite, que manda la misma cabecera con la misma variable.
  */
 export function cabecerasDeSeguridad(): Readonly<Record<string, string>> {
   const sitios = sitiosEmbebibles();

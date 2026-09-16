@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Button } from './Button.tsx';
 import { LogoInfinito } from './icons.tsx';
+import { volverAlInicio as reiniciar } from '../lib/inicio.ts';
 import { ID_SCROLL } from '../lib/scroll.ts';
 
 /**
@@ -93,7 +94,7 @@ export function Screen({
     }
     const empezado = onBack !== undefined;
     if (empezado && !window.confirm('¿Volver al inicio? Se pierde lo que cargaste.')) return;
-    window.location.href = '/';
+    reiniciar();
   };
 
   const botonera = (actions !== undefined || mostrarVolver) && (

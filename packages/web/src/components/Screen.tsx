@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Button } from './Button.tsx';
 import { LogoInfinito } from './icons.tsx';
 import { volverAlInicio as reiniciar } from '../lib/inicio.ts';
+import { recaptchaActivo } from '../lib/recaptcha.ts';
 import { ID_SCROLL } from '../lib/scroll.ts';
 
 /**
@@ -197,6 +198,34 @@ export function Screen({
             siempre la misma, en el celular y en el escritorio.
           */}
           {botonera !== false && <div className="mt-8 md:mt-12">{botonera}</div>}
+
+          {/*
+            La leyenda que Google exige a cambio de ocultar su badge flotante,
+            que tapaba el botón de WhatsApp. Ver `theme.css`.
+          */}
+          {recaptchaActivo && (
+            <p className="text-muted/80 mx-auto mt-10 max-w-(--w-campo) text-center text-[11px] leading-snug text-balance md:mt-14">
+              Este sitio está protegido por reCAPTCHA y se aplican la{' '}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Política de Privacidad
+              </a>{' '}
+              y los{' '}
+              <a
+                href="https://policies.google.com/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Términos de Servicio
+              </a>{' '}
+              de Google.
+            </p>
+          )}
         </main>
       </div>
     </div>

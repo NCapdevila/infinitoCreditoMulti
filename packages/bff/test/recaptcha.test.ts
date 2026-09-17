@@ -143,9 +143,9 @@ describe('configuración', () => {
   });
 
   it('un puntaje mínimo que no se entiende cae al default, no a cero', () => {
-    expect(scoreMinimo({})).toBe(0.5);
+    expect(scoreMinimo({})).toBe(0.3);
     expect(scoreMinimo({ RECAPTCHA_SCORE_MINIMO: '0.7' })).toBe(0.7);
-    expect(scoreMinimo({ RECAPTCHA_SCORE_MINIMO: 'cero coma siete' })).toBe(0.5);
-    expect(scoreMinimo({ RECAPTCHA_SCORE_MINIMO: '7' })).toBe(0.5);
+    expect(scoreMinimo({ RECAPTCHA_SCORE_MINIMO: 'cero coma siete' })).toBe(0.3);
+    expect(scoreMinimo({ RECAPTCHA_SCORE_MINIMO: '7' })).toBe(0.3);
   });
 });

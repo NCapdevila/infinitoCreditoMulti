@@ -35,14 +35,23 @@ export interface ConfigRecaptcha {
 const esProduccion = (entorno: Entorno) => entorno['NODE_ENV'] === 'production';
 
 /**
- * El puntaje mínimo, entre 0 y 1.
+ * El puntaje mínimo, entre 0 y 1. Por defecto, 0.3.
+ *
+ * Google sugiere empezar en 0.5, pero acá rechazar a un vendedor de verdad es
+ * perder una venta, y el token de `cotizar` se pide apenas carga la página,
+ * cuando reCAPTCHA todavía vio poco: es donde un humano puede sacar un puntaje
+ * mediocre. Un bot que pase con 0.3 igual choca con la cotización real, una
+ * solicitud por cotización y el rate limit. Con los puntajes reales del log se
+ * puede subir.
  *
  * Un valor que no se entiende cae al default y no a 0: un typo en la variable
  * no puede terminar aceptando cualquier cosa.
  */
+export const SCORE_MINIMO_POR_DEFECTO = 0.3;
+
 export function scoreMinimo(entorno: Entorno = process.env): number {
   const valor = Number.parseFloat(entorno['RECAPTCHA_SCORE_MINIMO'] ?? '');
-  return Number.isFinite(valor) && valor >= 0 && valor <= 1 ? valor : 0.5;
+  return Number.isFinite(valor) && valor >= 0 && valor <= 1 ? valor : SCORE_MINIMO_POR_DEFECTO;
 }
 
 /**

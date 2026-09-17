@@ -24,6 +24,9 @@ declare global {
 /** Se fija al compilar: cambiarla en el `.env` pide volver a correr el build. */
 const CLAVE = import.meta.env.VITE_RECAPTCHA_SITE_KEY ?? '';
 
+/** Este build usa reCAPTCHA: hay que mostrar la leyenda de Google. */
+export const recaptchaActivo = CLAVE !== '';
+
 let carga: Promise<boolean> | undefined;
 
 /** Baja el script de Google una sola vez. Resuelve `true` cuando está listo. */

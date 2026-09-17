@@ -106,3 +106,18 @@
     }
   }
 }
+
+/*
+ * El badge flotante de reCAPTCHA, oculto.
+ *
+ * Va en la misma esquina que el botón de WhatsApp y lo tapaba. Google permite
+ * esconderlo siempre que la leyenda quede visible en el flujo: la pone
+ * `Screen`, debajo de los botones.
+ *
+ * `visibility` y no `display: none`: con `display: none` reCAPTCHA deja de
+ * mirar la página y los puntajes se caen. Va fuera de `@layer` para que ninguna
+ * utilidad de Tailwind le gane.
+ */
+.grecaptcha-badge {
+  visibility: hidden;
+}

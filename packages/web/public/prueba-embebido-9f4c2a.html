@@ -127,8 +127,21 @@
         El `src` lo pone el script de abajo y no este atributo, porque abierta
         con doble clic `/` es la raíz del disco y el navegador muestra el
         índice de `C:\` adentro del marco. Mejor decir por qué.
+
+        `referrerpolicy` no es decoración: el BFF manda `Referrer-Policy:
+        no-referrer` en todo lo que sirve, y esta página la sirve él. Sin este
+        atributo el navegador pide el iframe sin `Referer`, que es justamente
+        la prueba de desde qué sitio se está embebiendo, y el pase se rechaza
+        con «sin referer». El atributo del elemento le gana a la cabecera del
+        documento y manda el origen, que es todo lo que hace falta.
+
+        Una página de agencia no necesita esto: su política es la suya.
       -->
-      <iframe title="Cotizador de seguros" loading="eager"></iframe>
+      <iframe
+        title="Cotizador de seguros"
+        loading="eager"
+        referrerpolicy="origin"
+      ></iframe>
 
       <div id="aviso" hidden>
         <h2>Esta página tiene que estar servida por http</h2>

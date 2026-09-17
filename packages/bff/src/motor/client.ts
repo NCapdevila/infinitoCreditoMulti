@@ -111,10 +111,36 @@ export class MotorClient {
     return parseStep(await this.request(url), this.config.uuid, '1', this.config.baseUrl);
   }
 
-  /** Trae un paso sin completar el anterior (las salidas alternativas). */
-  async goTo(step: StepId, session: MotorSession): Promise<ParsedStep> {
-    const html = await this.request(this.url(step, session.s));
-    return parseStep(html, this.config.uuid, step, this.config.baseUrl);
+  /**
+   * Trae un paso sin completar el anterior (las salidas alternativas).
+   *
+   * Casi todas se piden con un GET al fragmento. Las que el motor postea usan
+   * otra URL —`/embed/step5sp/…`, la misma forma que elegir un plan— y además
+   * devuelven otra pantalla: pedir `?step=5sp` por GET trae la misma página
+   * pero sin el año y sin el botón de contacto, que es justo lo único que esa
+   * pantalla ofrece hacer. Por eso el método viaja en la acción.
+   */
+  async goTo(
+    step: StepId,
+    session: MotorSession,
+    method: 'GET' | 'POST' = 'GET',
+  ): Promise<ParsedStep> {
+    const url =
+      method === 'POST'
+        ? `${this.config.baseUrl}/embed/step${step}/infinitocredito/${this.config.uuid}?s=${encodeURIComponent(session.s)}`
+        : this.url(step, session.s);
+    const html = await this.request(
+      url,
+      method === 'POST'
+        ? {
+            method: 'POST',
+            headers: {
+              Referer: `${this.config.baseUrl}/embed/infinitocredito/${this.config.uuid}`,
+            },
+          }
+        : undefined,
+    );
+    return parseStep(html, this.config.uuid, step, this.config.baseUrl, session);
   }
 
   /**
@@ -154,7 +180,7 @@ export class MotorClient {
 
     // El paso que devuelve el motor no siempre es el `next` declarado: si la
     // validación falla, re-renderiza el mismo paso con el error.
-    return parseStep(html, this.config.uuid, undefined, this.config.baseUrl);
+    return parseStep(html, this.config.uuid, undefined, this.config.baseUrl, session);
   }
 
   /**

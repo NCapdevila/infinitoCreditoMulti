@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ChoiceOption } from '@infinito/bff/motor/types';
+import type { ChoiceOption, VehiculoDelMotor } from '@infinito/bff/motor/types';
 import type { Quotations, Quote } from '@infinito/bff/motor/quotations';
 import { api, ErrorDeApi, type EstadoCotizacion } from './api.ts';
 
@@ -45,7 +45,16 @@ export interface Cotizacion {
   avanzar: (valores: Record<string, string>) => Promise<void>;
   ir: (step: string) => Promise<void>;
   volver: () => Promise<void>;
-  elegir: (quote: Quote) => Promise<Record<string, string>>;
+  /**
+   * Devuelve lo capturado durante la cotización, y el auto si vino por patente.
+   *
+   * Son dos cosas y no una porque los dos caminos dejan el vehículo en lugares
+   * distintos: elegido paso a paso queda en `valores`; resuelto por el motor a
+   * partir de la patente, esos pasos no existieron y viene aparte.
+   */
+  elegir: (
+    quote: Quote,
+  ) => Promise<{ valores: Record<string, string>; vehiculo?: VehiculoDelMotor }>;
   reintentar: () => void;
 }
 
@@ -209,11 +218,17 @@ export function useCotizacion(): Cotizacion {
     }
   }, [id, anterior]);
 
+  /**
+   * Elige un plan y trae lo que hace falta para armar la contratación.
+   *
+   * `vehiculo` sólo viene si se cotizó con patente: ahí los pasos de marca,
+   * modelo, año y versión no ocurrieron y `valores` no los tiene.
+   */
   const elegir = useCallback(
-    async (quote: Quote) => {
-      if (id === undefined) return {};
-      const { valores } = await api.elegir(id, quote);
-      return valores;
+    async (quote: Quote): Promise<{ valores: Record<string, string>; vehiculo?: VehiculoDelMotor }> => {
+      if (id === undefined) return { valores: {} };
+      const { valores, vehiculo } = await api.elegir(id, quote);
+      return { valores, ...(vehiculo !== undefined ? { vehiculo } : {}) };
     },
     [id],
   );

@@ -97,6 +97,26 @@ describe('polling', () => {
     // polling no puede basarse en esta señal.
     expect(r.awaitingFirstResults).toBe(false);
   });
+
+  /**
+   * Las dos pantallas sin una sola cobertura, las dos vistas en producción.
+   *
+   * Fallaban con 502 y el front cortaba el polling ahí mismo: la cotización se
+   * moría en la primera vuelta por una foto que dos segundos después ya traía
+   * planes.
+   */
+  it('el acordeón sin coberturas es una foto vacía, no un error', () => {
+    const r = parseQuotations(fixture('quotations-sin-coberturas.html'));
+    expect(r.total).toBe(0);
+    expect(r.groups).toEqual([]);
+    expect(r.awaitingFirstResults).toBe(true);
+  });
+
+  it('"Procesando cotizaciones…" tampoco es un error', () => {
+    const r = parseQuotations(fixture('quotations-procesando.html'));
+    expect(r.total).toBe(0);
+    expect(r.awaitingFirstResults).toBe(true);
+  });
 });
 
 describe('importes', () => {
@@ -114,8 +134,16 @@ describe('importes', () => {
 
 describe('cuando el markup cambia', () => {
   it('falla si desaparecen los acordeones', () => {
+    // Con las tarjetas a la vista y ningún acordeón, el markup cambió: acá no
+    // vale confundirlo con la pantalla que todavía no trajo nada.
     const roto = fixture('quotations-full.html').replaceAll('quotation-coverage-accordion', 'x');
     expect(() => parseQuotations(roto)).toThrowError(/no tiene coberturas/);
+  });
+
+  it('falla si el motor devuelve algo que no es la pantalla de resultados', () => {
+    expect(() => parseQuotations('<html><body>502 Bad Gateway</body></html>')).toThrowError(
+      MotorParseError,
+    );
   });
 
   it('falla si el botón de contratar deja de traer la elección', () => {

@@ -41,6 +41,18 @@ const ETIQUETAS_DE_BUSQUEDA: Record<string, string> = {
   brand: 'Buscar por marca',
 };
 
+/**
+ * Botones del motor que acá se dicen distinto.
+ *
+ * Es sólo redacción: el motor habla de «los datos» y nosotros de «mis datos»,
+ * que es de quien son. Se busca por el texto del motor a propósito —si algún
+ * día lo cambia, deja de coincidir y se muestra el suyo, que es lo correcto:
+ * un botón con el texto viejo diría a dónde va mal.
+ */
+const NUESTRA_REDACCION: Record<string, string> = {
+  'No, necesito modificar los datos': 'No, necesito modificar mis datos',
+};
+
 export function QStepScreen({
   step,
   onSubmit,
@@ -70,22 +82,43 @@ export function QStepScreen({
   // Pantalla informativa: muestra lo que el motor encontró y ofrece seguir.
   // No pide datos, así que todo su avance son acciones.
   if (step.kind === 'info') {
+    const contacto = step.contacto;
     return (
+      /*
+        Sin «Volver»: acá las dos salidas son la pregunta.
+
+        «¿Este es tu vehículo?» se contesta que sí o que no, y el "no" —ir a
+        buscar el vehículo a mano— es exactamente a dónde llevaría volver. Un
+        tercer botón que hace lo mismo que uno de los dos no agrega una salida,
+        agrega una duda sobre en qué se diferencian.
+      */
       <Screen
-        onBack={onBack}
         eyebrow={step.eyebrow}
         title={step.title}
+        {...(step.description !== undefined ? { description: step.description } : {})}
         ancho="campo"
-        actions={step.actions.map((accion, i) => (
-          <Button
-            key={accion.step}
-            variant={i === 0 ? 'primary' : 'secondary'}
-            onClick={() => onAction?.(accion.step)}
-            disabled={enviando === true}
-          >
-            {accion.label}
-          </Button>
-        ))}
+        actions={
+          <>
+            {step.actions.map((accion, i) => (
+              <Button
+                key={accion.step}
+                variant={i === 0 ? 'primary' : 'secondary'}
+                onClick={() => onAction?.(accion.step)}
+                disabled={enviando === true}
+              >
+                {NUESTRA_REDACCION[accion.label] ?? accion.label}
+              </Button>
+            ))}
+            {contacto !== undefined && (
+              <Button
+                variant="whatsapp"
+                onClick={() => window.open(contacto.url, '_blank', 'noopener,noreferrer')}
+              >
+                {contacto.label}
+              </Button>
+            )}
+          </>
+        }
       >
         {step.detalle.length > 0 && (
           <div className="bg-surface rounded-field mt-8 flex flex-col gap-2 p-5 text-center md:mt-12 md:p-8">

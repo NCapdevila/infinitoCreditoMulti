@@ -1,5 +1,5 @@
 import { ErrorDeCliente, ErrorHttp } from './errores.js';
-import type { MotorSession, Step } from './motor/types.js';
+import type { MotorSession, Step, VehiculoDelMotor } from './motor/types.js';
 
 /**
  * Las cotizaciones en curso.
@@ -30,6 +30,16 @@ export interface Cotizacion {
   paso: Step;
   /** Lo que el usuario fue eligiendo, para poder rearmar la contratación. */
   valores: Record<string, string>;
+  /**
+   * El auto que el motor encontró por patente, si se cotizó así.
+   *
+   * Cotizando con patente no hay pasos de marca, modelo, año ni versión: el
+   * motor los resuelve y los muestra una sola vez, en «¿Este es tu vehículo?».
+   * Se guarda ahí porque después no vuelve a estar en ningún lado, y sin él la
+   * contratación seguía con el auto de la cotización anterior —o con el de
+   * ejemplo— y la constancia salía con otro vehículo.
+   */
+  vehiculo?: VehiculoDelMotor;
   /** El motor ya está cotizando: se piden resultados, no pasos. */
   cotizando: boolean;
   /**

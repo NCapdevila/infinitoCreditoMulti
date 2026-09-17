@@ -75,6 +75,13 @@ const SEL = {
   amount: '.amount2',
   features: '.features-list li',
   contract: 'a[hx-post*="step4_1"]',
+  /**
+   * Los contenedores de la pantalla de resultados.
+   *
+   * Están aunque adentro no haya una sola cobertura, y son lo que distingue
+   * "todavía no llegó nada" de "el motor devolvió otra cosa".
+   */
+  screen: '.locations-section2, #quotations-container',
 } as const;
 
 /**
@@ -142,6 +149,26 @@ export function parseQuotations(html: string): Quotations {
   const $groups = $(SEL.group);
 
   if ($groups.length === 0) {
+    // La pantalla de resultados existe antes que las coberturas y el motor la
+    // sirve igual: con la sesión recién guardada devuelve
+    // `quotations_results_coverage_detail` —"Procesando cotizaciones de
+    // seguros…"— y, con el acordeón ya armado, puede devolverlo con el listado
+    // vacío. Ninguna de las dos es un cambio de markup: es la misma pantalla
+    // sin resultados todavía.
+    //
+    // Tratarlas como error costaba la cotización entera. El front corta el
+    // polling ante el primer fallo —muestra el error y no vuelve a pedir—, así
+    // que una foto vacía a los dos segundos de disparar mataba una cotización
+    // que dos vueltas después traía los 33 planes.
+    //
+    // Vacía de verdad, eso sí: si el contenedor trae tarjetas o encabezados de
+    // cobertura pero ningún acordeón, lo que cambió es el markup y hay que
+    // enterarse —es justo lo que dejaría de verse si el motor renombrara la
+    // clase del acordeón—.
+    const vacia = $(SEL.card).length === 0 && $(SEL.groupHeader).length === 0;
+    if ($(SEL.screen).length > 0 && vacia) {
+      return { groups: [], total: 0, awaitingFirstResults: true };
+    }
     throw new MotorParseError('la pantalla de resultados no tiene coberturas', {
       selector: SEL.group,
       html: html.slice(0, 400),

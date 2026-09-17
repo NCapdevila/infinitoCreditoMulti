@@ -1,4 +1,4 @@
-import type { ChoiceOption, Step } from '@infinito/bff/motor/types';
+import type { ChoiceOption, Step, VehiculoDelMotor } from '@infinito/bff/motor/types';
 import type { Quotations, Quote } from '@infinito/bff/motor/quotations';
 import { cabecerasDeApi } from './pase.ts';
 import { cabeceraRecaptcha } from './recaptcha.ts';
@@ -88,7 +88,12 @@ export const api = {
 
   /** Elige un plan y devuelve todo lo capturado, para armar la contratación. */
   elegir: (id: string, quote: Quote) =>
-    pedir<{ elegido: unknown; valores: Record<string, string> }>(`/cotizaciones/${id}/elegir`, {
+    pedir<{
+      elegido: unknown;
+      valores: Record<string, string>;
+      /** El auto que el motor encontró; sólo viene si se cotizó con patente. */
+      vehiculo?: VehiculoDelMotor;
+    }>(`/cotizaciones/${id}/elegir`, {
       method: 'POST',
       body: JSON.stringify({
         code: quote.code,

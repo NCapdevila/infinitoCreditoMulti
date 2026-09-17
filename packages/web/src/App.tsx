@@ -87,7 +87,7 @@ export function App() {
    * toma el motor.
    */
   const contratar = async (quote: Quote) => {
-    const valores = await cotizacion.elegir(quote);
+    const { valores, vehiculo } = await cotizacion.elegir(quote);
     const [nombreLocalidad = '', , cp = ''] = (valores['locality'] ?? '').split('|');
     const telefono = [valores['phone_prefix'], valores['phone_area'], valores['phone_number']]
       .filter((parte) => parte !== undefined && parte !== '')
@@ -120,13 +120,25 @@ export function App() {
         cp: cp !== '' ? cp : previo.domicilio.cp,
         localidad: nombreLocalidad !== '' ? nombreLocalidad : previo.domicilio.localidad,
       },
+      /*
+        Los dos caminos de cotización dejan el auto en lugares distintos.
+
+        Sin patente lo eligió el vendedor paso a paso y está en `valores`. Con
+        patente esos pasos no existieron: lo resolvió el motor y viene en
+        `vehiculo`, en un solo texto que va tanto a modelo como a versión —el
+        motor no los separa—. Y la patente es la que ya escribió: volver a
+        pedirla era pedir dos veces el mismo dato y quedarse con el que no era.
+      */
       vehiculo: {
         ...previo.vehiculo,
-        marca: (valores['brand'] ?? previo.vehiculo.marca).toUpperCase(),
+        marca: (valores['brand'] ?? vehiculo?.marca ?? previo.vehiculo.marca).toUpperCase(),
         // Los valores del motor vienen compuestos con «|»; el rótulo va primero.
-        modelo: (valores['model'] ?? previo.vehiculo.modelo).split('|')[0] ?? '',
-        version: (valores['version'] ?? previo.vehiculo.version).split('|')[0] ?? '',
-        anio: Number.parseInt(valores['year'] ?? '', 10) || previo.vehiculo.anio,
+        modelo: (valores['model'] ?? vehiculo?.descripcion ?? previo.vehiculo.modelo).split('|')[0] ?? '',
+        version: (valores['version'] ?? vehiculo?.descripcion ?? previo.vehiculo.version).split('|')[0] ?? '',
+        anio:
+          Number.parseInt(valores['year'] ?? '', 10) ||
+          (vehiculo?.anio !== undefined && vehiculo.anio > 0 ? vehiculo.anio : previo.vehiculo.anio),
+        patente: (valores['plate'] ?? previo.vehiculo.patente).toUpperCase(),
       },
     }));
     irA('S01');

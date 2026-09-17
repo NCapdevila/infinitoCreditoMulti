@@ -1,0 +1,76 @@
+
+
+<section class="intro-section-steps">
+    <div class="tag">COTIZÁ TU SEGURO</div>
+    <h1 class="title">¿Este es tu vehículo?</h1>
+    <div class="vehicle-section-cp">
+        <div class="vehicle-card-cp">
+            
+                <div class="vehicle-brand-logo">
+                    
+                        <img src="https://storage.googleapis.com/preciosa-cars-images/28713607-9a7f-4db8-bf85-ebf3ec5b53f9.png" alt="FIAT" class="brand-logo">
+                    
+                </div>
+                <h2 class="vehicle-title-cp">FIAT PALIO S 1.3 MPI (3 P) 2000</h2>
+                
+                    <p class="vehicle-description-cp">Tipo: SEDAN 3 PUERTAS</p>
+                
+                
+                    <p class="vehicle-description-cp">Fabricante: FIAT AUTO ARGENTINA S.A.</p>
+                
+            
+        </div>
+    </div>
+
+    <div class="actions-section">
+        
+            <!-- Caso de éxito: mostrar botones normales -->
+            <a href="#"
+               class="primary-button"
+               onclick="checkCarAge(2000)"
+               hx-target="#block-steps"
+               hx-swap="innerHTML">
+                Sí, continuemos
+            </a>
+            
+            <script>
+            function checkCarAge(vehicleYear) {
+                const currentYear = new Date().getFullYear();
+                const isOldCar = vehicleYear <= (currentYear - 20);
+                
+                if (isOldCar) {
+                    // Redirect to old car flow
+                    htmx.ajax('POST', '/embed/step5sp/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000', {
+                        target: '#block-steps',
+                        swap: 'innerHTML'
+                    });
+                } else {
+                    // Continue normal flow
+                    htmx.ajax('GET', '/embed/partial/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000&step=2_1', {
+                        target: '#block-steps',
+                        swap: 'innerHTML'
+                    });
+                    history.pushState({}, '', '/embed/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000&step=2_1');
+                }
+            }
+            </script>
+            
+            <a href="/embed/partial/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000&step=2sp"
+               class="secondary-button modify-data-button-2cp"
+               hx-get="/embed/partial/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000&step=2sp"
+               hx-target="#block-steps"
+               hx-swap="innerHTML"
+               hx-push-url="/embed/infinitocredito/994b4085-999d-4301-9531-607ff61fca42?s=sesiondeprueba000000000000000000&step=2sp">
+                No, necesito modificar los datos
+            </a>
+        
+    </div>
+</section>
+
+<div id="back-button-container" hx-swap-oob="true">
+	
+	<a href="#" onclick="history.back(); return false;" class="back-button">
+		<img src="/static/assets/Path.svg" alt="Volver" />
+	</a>
+	
+</div>

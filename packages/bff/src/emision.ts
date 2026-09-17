@@ -1,5 +1,6 @@
 import type { DatosCertificado } from './certificado.js';
 import type { Cotizacion, PlanElegido } from './cotizaciones.js';
+import type { VehiculoDelMotor } from './motor/types.js';
 import type { Solicitud } from './correo.js';
 import { ErrorDeCliente } from './errores.js';
 import type { Quotations } from './motor/quotations.js';
@@ -42,25 +43,42 @@ export function planDeResultados(
   return undefined;
 }
 
-type ValoresVehiculo = Partial<Pick<DatosCertificado['vehiculo'], 'marca' | 'modelo' | 'anio' | 'patente'>>;
+type ValoresVehiculo = Partial<
+  Pick<DatosCertificado['vehiculo'], 'marca' | 'modelo' | 'anio' | 'patente' | 'descripcion'>
+>;
 
 /**
- * Lo que el motor ya sabe del vehículo, con las mismas reglas que usa el front
- * al prellenar la contratación (`contratar` en `App.tsx`).
+ * Lo que el motor ya sabe del vehículo.
  *
- * Sólo trae lo que haya: cotizando con patente el motor la guarda, pero la
- * marca y el modelo los resuelve él y no pasan por los valores; cotizando sin
- * patente es al revés.
+ * Los dos caminos de cotización dejan cosas distintas, y ninguno deja todo:
+ *
+ * - **Sin patente** el vendedor elige marca, año, modelo y versión, y eso queda
+ *   en `valores`. La patente no existe: la carga recién en la contratación.
+ * - **Con patente** el motor resuelve el auto solo y esos pasos no ocurren:
+ *   `valores` trae la patente y nada más. Qué auto es lo dijo una sola vez, en
+ *   «¿Este es tu vehículo?», y de ahí sale `vehiculo`.
+ *
+ * Por eso se miran los dos. Antes se miraba sólo `valores`, y cotizar con
+ * patente terminaba con la patente correcta al lado del auto equivocado: el que
+ * hubiera quedado en el formulario del front.
  */
-export function vehiculoDeValores(valores: Readonly<Record<string, string>>): ValoresVehiculo {
+export function vehiculoDeValores(
+  valores: Readonly<Record<string, string>>,
+  delMotor?: VehiculoDelMotor,
+): ValoresVehiculo {
   const resultado: { -readonly [K in keyof ValoresVehiculo]: ValoresVehiculo[K] } = {};
-  const marca = valores['brand']?.trim();
+  const marca = valores['brand']?.trim() ?? delMotor?.marca;
   if (marca) resultado.marca = marca.toUpperCase();
   // Los valores del motor vienen compuestos con «|»: el rótulo va primero.
-  const modelo = valores['model']?.split('|')[0]?.trim();
+  // Cotizando con patente no hay modelo ni versión por separado —el motor manda
+  // un solo texto—, así que los dos campos llevan esa descripción.
+  const modelo = valores['model']?.split('|')[0]?.trim() ?? delMotor?.descripcion;
   if (modelo) resultado.modelo = modelo;
+  const version = valores['version']?.split('|')[0]?.trim() ?? delMotor?.descripcion;
+  if (version) resultado.descripcion = version;
   const anio = Number.parseInt(valores['year'] ?? '', 10);
   if (Number.isFinite(anio)) resultado.anio = anio;
+  else if (delMotor !== undefined && delMotor.anio > 0) resultado.anio = delMotor.anio;
   const patente = valores['plate']?.trim();
   if (patente) resultado.patente = patente.toUpperCase();
   return resultado;
@@ -94,7 +112,7 @@ const patenteLimpia = (valor: string) =>
  */
 export function datosDeEmision(
   cuerpo: unknown,
-  cotizacion: Pick<Cotizacion, 'valores'> & { readonly plan: PlanElegido },
+  cotizacion: Pick<Cotizacion, 'valores' | 'vehiculo'> & { readonly plan: PlanElegido },
   ahora: Date = new Date(),
 ): DatosCertificado {
   const datos = objeto(cuerpo);
@@ -104,7 +122,7 @@ export function datosDeEmision(
   const nombre = texto(asegurado['nombre'], 120);
   if (nombre === '') throw new ErrorDeCliente('faltan datos para armar la constancia');
 
-  const delMotor = vehiculoDeValores(cotizacion.valores);
+  const delMotor = vehiculoDeValores(cotizacion.valores, cotizacion.vehiculo);
   const anioDelForm = typeof vehiculo['anio'] === 'number' ? vehiculo['anio'] : Number.NaN;
 
   const { plan } = cotizacion;
@@ -117,7 +135,7 @@ export function datosDeEmision(
     },
     poliza: { aseguradora: plan.compania, fechaCarga: ahora },
     vehiculo: {
-      descripcion: texto(vehiculo['descripcion']),
+      descripcion: delMotor.descripcion ?? texto(vehiculo['descripcion']),
       marca: delMotor.marca ?? texto(vehiculo['marca'], 60),
       modelo: delMotor.modelo ?? texto(vehiculo['modelo'], 80),
       anio: delMotor.anio ?? (Number.isInteger(anioDelForm) ? anioDelForm : 0),

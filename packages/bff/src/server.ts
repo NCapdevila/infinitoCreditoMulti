@@ -19,7 +19,7 @@ import {
 import { ErrorDeCliente, ErrorHttp } from './errores.js';
 import { directorioWeb, leerDocumento, leerEstatico, paginaDeRechazo } from './estaticos.js';
 import { MotorClient, MotorHttpError } from './motor/client.js';
-import { MotorParseError } from './motor/types.js';
+import { MotorParseError, type Step } from './motor/types.js';
 import type { Quotations } from './motor/quotations.js';
 import {
   MENSAJE_RECHAZO,
@@ -163,6 +163,17 @@ async function crear(res: ServerResponse, origen: string): Promise<void> {
  * Si el motor contesta con la pantalla de espera, ya tiene todo: se dispara la
  * cotización y a partir de ahí el front pide resultados.
  */
+/**
+ * Se queda con el auto que el motor encontró por patente.
+ *
+ * Aparece una sola vez —en «¿Este es tu vehículo?»— y después el usuario sigue
+ * a provincia y localidad, pantallas que ya no lo mencionan. Si no se guarda
+ * acá, para cuando hay que emitir no está en ningún lado.
+ */
+function recordarVehiculo(cotizacion: Cotizacion, paso: Step): void {
+  if (paso.kind === 'info' && paso.vehiculo !== undefined) cotizacion.vehiculo = paso.vehiculo;
+}
+
 async function avanzar(
   req: IncomingMessage,
   res: ServerResponse,
@@ -196,6 +207,7 @@ async function avanzar(
   cotizacion.paso = step;
   cotizacion.visitados.push(step.id);
   Object.assign(cotizacion.valores, valores);
+  recordarVehiculo(cotizacion, step);
 
   if (step.kind === 'waiting') {
     await motor.save(session);
@@ -220,20 +232,24 @@ async function ir(
   const destino = cuerpo['step'];
   if (typeof destino !== 'string') throw new ErrorDeCliente('falta `step`');
 
-  const salidas =
-    cotizacion.paso.kind === 'waiting' ? [] : cotizacion.paso.actions.map((a) => a.step);
+  const salidas = cotizacion.paso.kind === 'waiting' ? [] : cotizacion.paso.actions;
   // Se navega a una salida del paso actual, o a un paso por el que esta misma
   // cotización ya pasó —el botón de volver—. Lo que no se puede es inventar un
   // id y terminar en una pantalla incoherente, que es de lo que cuida este
   // control: las dos listas las escribió el servidor, no el front.
+  const salida = salidas.find((a) => a.step === destino);
   const atras = cotizacion.visitados.indexOf(destino);
-  if (!salidas.includes(destino) && atras === -1) {
+  if (salida === undefined && atras === -1) {
     throw new ErrorDeCliente(`el paso actual no ofrece ir a "${destino}"`);
   }
 
-  const { session, step } = await motor.goTo(destino, cotizacion.session);
+  // Con qué método se va lo dijo el motor al describir la salida; volver atrás
+  // es siempre un GET. Que lo decida el front sería dejarle elegir un camino
+  // que el motor no ofreció.
+  const { session, step } = await motor.goTo(destino, cotizacion.session, salida?.method ?? 'GET');
   cotizacion.session = session;
   cotizacion.paso = step;
+  recordarVehiculo(cotizacion, step);
   // Volver corta el camino donde estaba ese paso; una salida lateral lo sigue.
   if (atras !== -1) cotizacion.visitados.length = atras + 1;
   else cotizacion.visitados.push(step.id);
@@ -311,7 +327,13 @@ async function elegir(
     plan: elegido.plan,
   });
   cotizacion.plan = elegido;
-  responder(res, 200, { elegido, valores: cotizacion.valores });
+  responder(res, 200, {
+    elegido,
+    valores: cotizacion.valores,
+    // Cotizando con patente es lo único que dice qué auto es: el front no
+    // puede sacarlo de `valores`, porque esos pasos no existieron.
+    ...(cotizacion.vehiculo !== undefined ? { vehiculo: cotizacion.vehiculo } : {}),
+  });
 }
 
 /**

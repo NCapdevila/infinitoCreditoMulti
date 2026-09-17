@@ -34,6 +34,34 @@ completo de marcas — una salida lateral, no el paso siguiente.
 Los valores compuestos usan `|` como separador. **El CP sale de acá**, en el
 tercer campo de `locality`: es el mismo que la etapa 3 muestra como read-only.
 
+### Cotizar con patente: `2cp`
+
+Con patente el motor resuelve el auto solo y **no hay pasos de marca, modelo,
+año ni versión**: de `2cp` se sigue derecho a provincia. Por eso `2cp` es el
+único lugar donde dice qué auto encontró, y hay que guardarlo ahí —después no
+vuelve a estar en ningún lado y la contratación arranca sin vehículo—.
+
+Lo que trae, y nada más que eso:
+
+```html
+<img alt="FIAT" class="brand-logo">              <!-- la marca, limpia -->
+<h2 class="vehicle-title-cp">FIAT PALIO S 1.3 MPI (3 P) 2000</h2>
+<p class="vehicle-description-cp">Tipo: SEDAN 3 PUERTAS</p>
+<p class="vehicle-description-cp">Fabricante: FIAT AUTO ARGENTINA S.A.</p>
+```
+
+**No consulta motor ni chasis.** Esos los carga el vendedor en la contratación,
+no hay de dónde sacarlos. El logo es además lo que separa el caso exitoso del
+fallido: cuando no encuentra el auto, la tarjeta trae la patente y un aviso de
+error, sin marca.
+
+El botón que confirma es el único control del motor que no declara su destino:
+`<a href="#" onclick="checkCarAge(2000)">`, y un script inline decide según la
+antigüedad. Hasta veinte años sigue a `2_1` por GET; más viejo, **postea** a
+`/embed/step5sp/…` —«Anterior al año 2006», una pantalla sin salida más que el
+WhatsApp del asesor—. Pedir `?step=5sp` por GET devuelve esa pantalla sin el año
+y sin el botón de contacto, así que el método importa.
+
 ### Endpoints auxiliares
 
 Devuelven listados para los selectores. POST con `search` (vacío trae todo):
@@ -68,6 +96,19 @@ decide `MotorClient.pollQuotations` por estabilidad del total, con tope duro.
 Estructura: 5 acordeones de cobertura (Responsabilidad Civil, Terceros Básico,
 Terceros Completos, Terceros Completos Premium, Todo Riesgo), cada uno con las
 tarjetas de las compañías que cotizaron.
+
+**Y a veces devuelve la pantalla sin una sola cobertura**, de dos formas
+distintas, las dos con 200:
+
+| Plantilla | Cuándo | Qué trae |
+|---|---|---|
+| `quotations_results_coverage_detail.html` | sesión que el motor no tiene todavía | `#quotations-container` con "Procesando cotizaciones de seguros…" |
+| `quotations_results_coverage_accordion.html` | la de siempre, con el listado vacío | `.locations-section2` sin acordeones adentro |
+
+No son un cambio de markup: es la misma pantalla antes de que haya algo que
+mostrar. `parseQuotations` las devuelve como una foto en cero
+(`awaitingFirstResults`), porque el front corta el polling ante el primer
+error y una de estas en la primera vuelta mataba la cotización entera.
 
 ## La frontera con la etapa 3
 

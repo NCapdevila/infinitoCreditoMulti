@@ -192,6 +192,30 @@ describe('los datos de la constancia', () => {
     expect(vehiculo).toMatchObject({ marca: 'FERRARI', modelo: 'F40', anio: 1990, patente: 'AB123CD' });
   });
 
+  /**
+   * Cotizando con patente no hay pasos de marca, modelo, año ni versión: el
+   * motor resuelve el auto y lo dice una sola vez. Antes de guardarlo, la
+   * constancia salía con la patente correcta al lado del auto que hubiera
+   * quedado en el formulario.
+   */
+  it('con patente, el auto lo pone el motor aunque no haya pasado por los pasos', () => {
+    const { vehiculo } = datosDeEmision(formulario, {
+      valores: { plate: 'ded189' },
+      vehiculo: { marca: 'FIAT', descripcion: 'PALIO S 1.3 MPI (3 P)', anio: 2000 },
+      plan: PLAN,
+    });
+    expect(vehiculo).toMatchObject({
+      marca: 'FIAT',
+      // El motor manda un solo texto: modelo y versión llevan el mismo.
+      modelo: 'PALIO S 1.3 MPI (3 P)',
+      descripcion: 'PALIO S 1.3 MPI (3 P)',
+      anio: 2000,
+      patente: 'DED189',
+    });
+    // Motor y chasis no los consulta el motor: esos sí son del formulario.
+    expect(vehiculo).toMatchObject({ motor: 'M1', chasis: 'C1' });
+  });
+
   it('una patente con caracteres raros no sale al asunto ni al nombre del PDF', () => {
     const conTrampa = { ...formulario, vehiculo: { ...formulario.vehiculo, patente: 'AB1\r\nBcc: x@y"' } };
     expect(datosDeEmision(conTrampa, { valores: {}, plan: PLAN }).vehiculo.patente).toBe('AB1 BCC XY');

@@ -120,6 +120,31 @@ export interface ChoiceStep extends StepBase {
 }
 
 /**
+ * El vehículo que el motor encontró a partir de la patente.
+ *
+ * Cotizando con patente el motor resuelve el auto solo y se saltea los pasos de
+ * marca, modelo, año y versión: este es el único lugar donde dice qué encontró.
+ * Sin guardarlo, la contratación arranca sin auto y termina emitiendo una
+ * constancia con otro.
+ *
+ * **No trae motor ni chasis**: el motor no los consulta. Esos los carga el
+ * vendedor en la contratación.
+ */
+export interface VehiculoDelMotor {
+  /** Del logo de la marca, que es donde viene limpia: «FIAT». */
+  readonly marca: string;
+  /**
+   * El auto, sin la marca ni el año.
+   *
+   * El motor lo manda en un solo string —«FIAT PALIO S 1.3 MPI (3 P) 2000»— y
+   * acá se le sacan las dos puntas, que tienen campo propio y se verían
+   * repetidas al lado.
+   */
+  readonly descripcion: string;
+  readonly anio: number;
+}
+
+/**
  * Pantalla que informa un resultado y ofrece seguir, sin pedir nada.
  *
  * Es lo que devuelve cotizar con patente: «¿Este es tu vehículo?» con los datos
@@ -131,9 +156,21 @@ export interface InfoStep {
   readonly id: StepId;
   readonly eyebrow?: string;
   readonly title: string;
+  readonly description?: string;
   /** Líneas del cuerpo: la patente consultada, los datos del vehículo. */
   readonly detalle: readonly string[];
+  /** El auto encontrado. Falta cuando la consulta por patente no dio con él. */
+  readonly vehiculo?: VehiculoDelMotor;
   readonly actions: readonly Action[];
+  /**
+   * Salida fuera del motor, cuando la pantalla no tiene ninguna adentro.
+   *
+   * Es el caso de los autos de más de veinte años: el motor no los cotiza y
+   * manda a hablar con un asesor. El enlace se toma como viene —número y
+   * mensaje incluidos—; inventarlo de este lado sería sostener el mismo dato
+   * en dos lugares.
+   */
+  readonly contacto?: { readonly label: string; readonly url: string };
 }
 
 /**

@@ -11,6 +11,12 @@ import { completos } from '../lib/obligatorios.ts';
  *
  * Identificación registral. La card de arriba viene de la cotización y no se
  * edita: cambiar el vehículo obliga a recotizar.
+ *
+ * La patente juega en los dos lados. Cotizando con patente ya la escribió el
+ * vendedor y es con la que el motor encontró este auto: pedirla de nuevo era
+ * pedir dos veces el mismo dato, y quedarse con el que no era —la constancia
+ * salía con la de la cotización y el cuerpo del correo con la del formulario—.
+ * Así que si ya está, sube a la card con el resto de lo que no se toca.
  */
 interface Props {
   readonly valores: DatosVehiculo;
@@ -23,6 +29,8 @@ interface Props {
 export function S07Vehiculo({ valores, onChange, onNext, onCeroKm, onBack }: Props) {
   const set = <K extends keyof DatosVehiculo>(campo: K, valor: DatosVehiculo[K]) =>
     onChange({ ...valores, [campo]: valor });
+
+  const patenteDeLaCotizacion = valores.patente.trim() !== '';
 
   return (
     <Screen
@@ -47,19 +55,21 @@ export function S07Vehiculo({ valores, onChange, onNext, onCeroKm, onBack }: Pro
         <ContextCard
           icon={CarIcon}
           title={`${valores.marca} ${valores.modelo} ${valores.anio}`}
-          detail={valores.version}
+          detail={patenteDeLaCotizacion ? `Patente: ${valores.patente}` : valores.version}
         />
 
-        <TextField
-          id="vehiculo-patente"
-          label="Patente"
-          placeholder="AZ456CD"
-          editable
-          maxLength={7}
-          value={valores.patente}
-          onChange={(e) => set('patente', e.target.value.toUpperCase())}
-          className="uppercase"
-        />
+        {!patenteDeLaCotizacion && (
+          <TextField
+            id="vehiculo-patente"
+            label="Patente"
+            placeholder="AZ456CD"
+            editable
+            maxLength={7}
+            value={valores.patente}
+            onChange={(e) => set('patente', e.target.value.toUpperCase())}
+            className="uppercase"
+          />
+        )}
         <TextField
           id="vehiculo-motor"
           label="Motor"

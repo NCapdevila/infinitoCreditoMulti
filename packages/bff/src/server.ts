@@ -386,7 +386,15 @@ async function solicitud(req: IncomingMessage, res: ServerResponse, origen: stri
   }
 
   const correo: Solicitud = {
-    asunto: asuntoDeSolicitud(cotizacion.plan, datos.vehiculo.patente),
+    asunto: asuntoDeSolicitud({
+      // La agencia es el único dato del asunto que sale del formulario: la
+      // compañía viene del plan guardado, la patente y el cliente de lo que
+      // ya pasó por `datosDeEmision`.
+      agencia: correoDelCliente['agencia'],
+      compania: cotizacion.plan.compania,
+      patente: datos.vehiculo.patente,
+      cliente: datos.asegurado.nombre,
+    }),
     secciones: seccionesDeSolicitud(correoDelCliente['secciones'], cotizacion.plan),
     // Tipo por firma de los bytes y nombre puesto acá: ver `adjuntos.ts`.
     adjuntos: validarAdjuntos(correoDelCliente['adjuntos']),

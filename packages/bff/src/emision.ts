@@ -153,9 +153,36 @@ export function datosDeEmision(
 
 // ── el correo ──────────────────────────────────────────────────────────
 
-/** El asunto lo arma el servidor: es lo primero que ve quien lo recibe. */
-export const asuntoDeSolicitud = (plan: PlanElegido, patente: string) =>
-  `Solicitud de emisión · ${plan.compania} · ${patente || 'sin patente'}`;
+/**
+ * El asunto, que es lo primero que ve quien recibe la solicitud.
+ *
+ * Lo arma el servidor y no el front por lo mismo de siempre, pero acá con un
+ * filo extra: es una **cabecera de correo**, y un salto de línea ahí adentro no
+ * ensucia el texto, agrega cabeceras. Por eso cada parte pasa por `texto()`
+ * —que se come `\r`, `\n` y `\t`— sin importar de dónde venga ni si ya venía
+ * limpia: el que llama no tiene forma de armar un asunto peligroso.
+ *
+ * Las partes vacías se omiten en vez de dejar el hueco entre guiones: un asunto
+ * con « - - » parece un error del sistema. La patente es la excepción, porque
+ * su ausencia dice algo —un 0 KM, una carga a medias— y conviene leerla.
+ */
+export function asuntoDeSolicitud(partes: {
+  /** Viene del formulario, así que llega sin validar. */
+  readonly agencia: unknown;
+  readonly compania: string;
+  readonly patente: string;
+  readonly cliente: string;
+}): string {
+  return [
+    'Solicitud de Emisión',
+    texto(partes.agencia, 80),
+    texto(partes.compania, 80),
+    texto(partes.patente, 20) || 'sin patente',
+    texto(partes.cliente, 120),
+  ]
+    .filter((parte) => parte !== '')
+    .join(' - ');
+}
 
 const TITULO_COBERTURA = 'Cobertura elegida';
 

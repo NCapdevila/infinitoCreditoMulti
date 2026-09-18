@@ -154,6 +154,9 @@ export async function enviarSolicitud(
         adjuntos: adjuntosDe(datos),
         emailCliente,
         nombreCliente,
+        // Para el asunto. Va aparte de las secciones porque sacarlo de ahí
+        // ataría el asunto al título de una sección del cuerpo del correo.
+        agencia: datos.agencia.nombre,
       },
     }),
   });

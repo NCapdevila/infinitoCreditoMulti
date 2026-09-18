@@ -258,8 +258,41 @@ describe('el plan elegido', () => {
 });
 
 describe('el correo', () => {
+  const ASUNTO = {
+    agencia: 'Concesionaria del Litoral',
+    compania: PLAN.compania,
+    patente: 'NZB218',
+    cliente: 'JUAN PÉREZ',
+  };
+
   it('el asunto lo arma el servidor', () => {
-    expect(asuntoDeSolicitud(PLAN, 'NZB218')).toBe('Solicitud de emisión · Zurich · NZB218');
+    expect(asuntoDeSolicitud(ASUNTO)).toBe(
+      'Solicitud de Emisión - Concesionaria del Litoral - Zurich - NZB218 - JUAN PÉREZ',
+    );
+  });
+
+  it('una parte vacía se omite en vez de dejar el hueco entre guiones', () => {
+    expect(asuntoDeSolicitud({ ...ASUNTO, agencia: '' })).toBe(
+      'Solicitud de Emisión - Zurich - NZB218 - JUAN PÉREZ',
+    );
+    // La patente es la excepción: que falte dice algo y conviene leerlo.
+    expect(asuntoDeSolicitud({ ...ASUNTO, patente: '' })).toContain('sin patente');
+  });
+
+  it('un salto de línea en el asunto no agrega cabeceras al correo', () => {
+    // Sin esto, «\nBcc: …» en el nombre de la agencia manda copia a un tercero.
+    const asunto = asuntoDeSolicitud({
+      ...ASUNTO,
+      agencia: 'Agencia\r\nBcc: ajeno@ejemplo.com',
+    });
+    expect(asunto).not.toMatch(/[\r\n]/);
+    expect(asunto).toContain('Agencia Bcc: ajeno@ejemplo.com');
+  });
+
+  it('una agencia que no es texto se descarta, no rompe el asunto', () => {
+    expect(asuntoDeSolicitud({ ...ASUNTO, agencia: { nombre: 'X' } })).toBe(
+      'Solicitud de Emisión - Zurich - NZB218 - JUAN PÉREZ',
+    );
   });
 
   it('la sección de cobertura sale del plan, y una falsa del cliente se descarta', () => {

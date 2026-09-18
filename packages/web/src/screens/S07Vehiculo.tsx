@@ -17,20 +17,31 @@ import { completos } from '../lib/obligatorios.ts';
  * pedir dos veces el mismo dato, y quedarse con el que no era —la constancia
  * salía con la de la cotización y el cuerpo del correo con la del formulario—.
  * Así que si ya está, sube a la card con el resto de lo que no se toca.
+ *
+ * Lo decide de dónde vino, no si hay algo escrito: mirando el valor, la primera
+ * letra que tipeaba el vendedor mandaba el campo a la card y no había forma de
+ * corregirla.
  */
 interface Props {
   readonly valores: DatosVehiculo;
+  /** La patente la trajo la cotización: se muestra, no se edita. */
+  readonly patenteDeLaCotizacion: boolean;
   readonly onChange: (valores: DatosVehiculo) => void;
   readonly onNext: () => void;
   readonly onCeroKm: () => void;
   readonly onBack: () => void;
 }
 
-export function S07Vehiculo({ valores, onChange, onNext, onCeroKm, onBack }: Props) {
+export function S07Vehiculo({
+  valores,
+  patenteDeLaCotizacion,
+  onChange,
+  onNext,
+  onCeroKm,
+  onBack,
+}: Props) {
   const set = <K extends keyof DatosVehiculo>(campo: K, valor: DatosVehiculo[K]) =>
     onChange({ ...valores, [campo]: valor });
-
-  const patenteDeLaCotizacion = valores.patente.trim() !== '';
 
   return (
     <Screen

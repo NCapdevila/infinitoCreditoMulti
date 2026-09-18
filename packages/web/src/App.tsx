@@ -68,6 +68,8 @@ export function App() {
   >(undefined);
   /** Una edición lanzada desde S12 vuelve al resumen, no sigue el camino. */
   const [volverAResumen, setVolverAResumen] = useState(false);
+  /** Se cotizó con patente: S07 la muestra en la card en vez de pedirla. */
+  const [patenteDeLaCotizacion, setPatenteDeLaCotizacion] = useState(false);
 
   const irA = (pantalla: PantallaS) => {
     setContratando(pantalla);
@@ -92,7 +94,9 @@ export function App() {
     const telefono = [valores['phone_prefix'], valores['phone_area'], valores['phone_number']]
       .filter((parte) => parte !== undefined && parte !== '')
       .join(' ');
+    const patente = (valores['plate'] ?? '').trim();
 
+    setPatenteDeLaCotizacion(patente !== '');
     setDatos((previo) => ({
       ...previo,
       cobertura: {
@@ -138,7 +142,7 @@ export function App() {
         anio:
           Number.parseInt(valores['year'] ?? '', 10) ||
           (vehiculo?.anio !== undefined && vehiculo.anio > 0 ? vehiculo.anio : previo.vehiculo.anio),
-        patente: (valores['plate'] ?? previo.vehiculo.patente).toUpperCase(),
+        patente: (patente !== '' ? patente : previo.vehiculo.patente).toUpperCase(),
       },
     }));
     irA('S01');
@@ -291,6 +295,7 @@ export function App() {
       return (
         <S07Vehiculo
           valores={datos.vehiculo}
+          patenteDeLaCotizacion={patenteDeLaCotizacion}
           onChange={(vehiculo) => setDatos({ ...datos, vehiculo })}
           onNext={avanzarS}
           onCeroKm={() => {
